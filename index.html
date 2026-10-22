@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>Achoo</title>
-<meta name="description" content="Achoo: 킬링타임용 예쁜 쓰레기. 다섯 칸짜리 손가락 장난감.">
+<meta name="description" content="Achoo: 킬링타임용 예쁜 쓰레기. 손가락으로 노는 이상한 방들.">
 <meta name="theme-color" content="#2436ff">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -16,7 +16,6 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Chivo:wght@900&display=swap" rel="stylesheet">
 <style>
-  /* direction "colour-chapters", palette "Blue, red, black" (design-taste-frontend) */
   :root{
     --field:#2436ff;--ink:#ffffff;
     --safe-t:env(safe-area-inset-top,0px);--safe-b:env(safe-area-inset-bottom,0px);
@@ -25,26 +24,39 @@
   *{box-sizing:border-box;margin:0;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
   html,body{height:100%;overflow:hidden;overscroll-behavior:none;background:var(--field)}
   body{color:var(--ink);font-family:'Chivo',system-ui,sans-serif;font-weight:900;-webkit-font-smoothing:antialiased;transition:background-color .3s var(--ease-out)}
-  canvas{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
+  body.inv{filter:invert(1);transition:none}
+  canvas{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;transition:opacity .4s var(--ease-out)}
+  canvas.hide{opacity:0}
   .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
-  #steps{position:fixed;top:calc(var(--safe-t) + 8px);left:0;right:0;display:flex;justify-content:center;z-index:3}
-  #steps button{all:unset;box-sizing:border-box;width:48px;height:48px;display:grid;place-items:center;cursor:pointer}
-  #steps i{display:block;width:16px;height:16px;background:transparent;outline:2px solid var(--ink);outline-offset:-2px;transition:background-color .2s var(--ease-out),transform .2s var(--ease-out)}
-  #steps button.done i{background:var(--ink)}
-  #steps button.now i{background:var(--ink);transform:scale(1.5)}
-  #steps button:focus-visible{outline:3px solid var(--ink);outline-offset:-6px}
+  #steps{position:fixed;top:calc(var(--safe-t) + 14px);left:0;right:0;display:flex;justify-content:center;gap:7px;z-index:3;pointer-events:none}
+  #steps i{display:block;width:12px;height:12px;outline:2px solid var(--ink);outline-offset:-2px;transition:background-color .2s var(--ease-out),transform .2s var(--ease-out)}
+  #steps i.done{background:var(--ink)}
+  #steps i.now{background:var(--ink);transform:scale(1.5)}
+  #steps i.sec::after{content:"";display:block;width:4px;height:4px;margin:4px;background:var(--field)}
   #bar{position:fixed;left:0;right:0;bottom:0;height:calc(12px + var(--safe-b));padding-bottom:var(--safe-b);z-index:3;pointer-events:none}
   #bar b{display:block;height:12px;background:var(--ink);transform-origin:left;transform:scaleX(0);transition:transform .2s var(--ease-out)}
   #cue{position:fixed;inset:0;display:grid;place-items:center;pointer-events:none;z-index:2;font-size:min(19vw,150px);letter-spacing:-.05em;text-transform:uppercase;line-height:.88;opacity:0}
   #cue.show{animation:cue 1.5s var(--ease-out) both}
   @keyframes cue{0%{opacity:0;transform:scale(.86)}16%{opacity:1;transform:scale(1)}72%{opacity:1}100%{opacity:0}}
+  #title{position:fixed;left:0;right:0;top:calc(var(--safe-t) + 8vh);z-index:2;display:none;pointer-events:none;text-align:center}
+  #title h1{font-size:min(28vw,230px);line-height:.88;letter-spacing:-.05em;text-transform:uppercase;font-weight:900}
+  body.title #title{display:block}
+  #arch{all:unset;box-sizing:border-box;position:fixed;left:50%;bottom:calc(28px + var(--safe-b));transform:translateX(-50%);width:64px;height:64px;display:none;place-items:center;cursor:pointer;z-index:4}
+  body.title #arch{display:grid}
+  #arch i{display:block;width:40px;height:24px;border:3px solid var(--ink);border-radius:50%/60%;position:relative}
+  #arch i::after{content:"";position:absolute;left:50%;top:50%;width:10px;height:10px;margin:-5px;border-radius:50%;background:var(--ink)}
+  #arch:focus-visible{outline:3px solid var(--ink);outline-offset:-4px}
+  #archive{position:fixed;inset:0;z-index:8;display:none;background:var(--field);color:var(--ink);overflow-y:auto;touch-action:pan-y}
+  #archive.on{display:block}
+  #archive .in{padding:calc(var(--safe-t) + 40px) 8vw calc(var(--safe-b) + 40px)}
+  #archive p{font-size:min(5.4vw,26px);line-height:1.3;letter-spacing:-.03em;margin-bottom:.9em;text-wrap:balance}
+  #archive p.dim{opacity:.35}
+  #archive p.nums{margin-top:2em;font-size:min(4vw,18px);opacity:.7}
   #line{position:fixed;inset:0;z-index:6;display:grid;place-items:center;padding:0 8vw;text-align:center;font-size:min(8vw,44px);line-height:1.2;letter-spacing:-.03em;text-wrap:balance;opacity:0;pointer-events:none;transition:opacity .3s var(--ease-out)}
   #line.on{opacity:1;pointer-events:auto}
   #line.low{place-items:end center;padding-bottom:calc(14vh + var(--safe-b))}
   #whisper{position:fixed;left:0;right:0;bottom:calc(32px + var(--safe-b));text-align:center;z-index:4;pointer-events:none;font-size:min(6.5vw,30px);letter-spacing:-.03em;opacity:0;transform:translateY(8px);transition:opacity .3s var(--ease-out),transform .3s var(--ease-out)}
   #whisper.on{opacity:1;transform:none}
-  canvas{transition:opacity .4s var(--ease-out)}canvas.hide{opacity:0}
-  #steps button.sec i::after{content:"";display:block;width:6px;height:6px;margin:3px;background:#ff3b1f}
   #burst{position:fixed;inset:0;pointer-events:none;background:var(--next);clip-path:circle(0 at var(--bx) var(--by));z-index:5}
   #burst.go{animation:burst .45s var(--ease-out) forwards}
   @keyframes burst{to{clip-path:circle(150vmax at var(--bx) var(--by))}}
@@ -52,266 +64,19 @@
   @keyframes cueR{0%,70%{opacity:1}100%{opacity:0}}
 </style>
 </head>
-<body>
-<h1 class="sr">Achoo</h1>
-<canvas id="c"></canvas>
-<div id="steps" role="group" aria-label="방"></div>
+<body class="title">
+<canvas id="c" aria-label="장난감 캔버스"></canvas>
+<div id="title"><h1>Achoo</h1></div>
+<div id="steps" aria-hidden="true"></div>
 <div id="cue" aria-live="polite"></div>
 <div id="bar"><b id="fill"></b></div>
+<button id="arch" aria-label="기록"><i></i></button>
+<div id="archive"></div>
 <div id="line" aria-live="polite"></div>
 <div id="whisper" aria-live="polite"></div>
 <div id="burst"></div>
-<script>
-const cv=document.getElementById('c'),ctx=cv.getContext('2d'),cue=document.getElementById('cue');
-const burst=document.getElementById('burst'),fill=document.getElementById('fill'),steps=document.getElementById('steps');
-const root=document.documentElement,themeMeta=document.querySelector('meta[name=theme-color]');
-const reduce=matchMedia('(prefers-reduced-motion:reduce)').matches;
-const rnd=(a,b)=>a+Math.random()*(b-a),pick=a=>a[(Math.random()*a.length)|0];
-let W,H,DPR=Math.min(devicePixelRatio||1,2);
-const M={x:-9999,y:-9999,vx:0,vy:0,sx:0,sy:0,down:false,active:false};
-const buzz=p=>{try{navigator.vibrate&&navigator.vibrate(p)}catch(e){}};
-
-// ---- audio ----
-let AC;
-function blip(f=400,d=.12,type='sine',v=.12,delay=0){
-  try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();
-  const t=AC.currentTime+delay,o=AC.createOscillator(),g=AC.createGain();o.type=type;o.frequency.setValueAtTime(f,t);
-  o.frequency.exponentialRampToValueAtTime(f*1.8,t+d);g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.001,t+d);
-  o.connect(g).connect(AC.destination);o.start(t);o.stop(t+d)}catch(e){}
-}
-const jingle=()=>[520,660,880].forEach((f,i)=>blip(f,.14,'triangle',.1,i*.09));
-
-// ---- shared flat particles ----
-function Parts(){return {a:[],burst(x,y,n,cols,s=5){for(let i=0;i<n;i++){const an=rnd(0,6.28),sp=rnd(1,s);this.a.push({x,y,vx:Math.cos(an)*sp,vy:Math.sin(an)*sp-1,l:1,c:pick(cols),r:rnd(2,5)})}},
-  draw(g=.1){for(let i=this.a.length-1;i>=0;i--){const p=this.a[i];p.x+=p.vx;p.y+=p.vy;p.vy+=g;p.l-=.02;if(p.l<=0){this.a.splice(i,1);continue}
-    ctx.fillStyle=p.c;ctx.beginPath();ctx.arc(p.x,p.y,p.r*p.l+1,0,6.28);ctx.fill()}}}}
-
-// ===== 1. POP (blue) : pop 10 bubbles =====
-const pop={
-  cue:'Pop',field:['#2436ff','#ffffff'],
-  init(){this.list=[];this.n=0;this.need=10;this.done=false;this.p=0;this.fx=Parts();for(let i=0;i<20;i++)this.spawn()},
-  spawn(x,y){this.list.push({x:x??rnd(30,W-30),y:y??rnd(H*.3,H+60),r:rnd(24,58),vy:rnd(-.9,-.3),ph:rnd(0,6.28),c:pick(['#ffffff','#ff3b1f','#0a0a0a'])})},
-  down(){const hit=this.list.filter(b=>Math.hypot(b.x-M.x,b.y-M.y)<b.r+10).sort((a,b)=>a.r-b.r)[0];if(hit)this.pop(hit)},
-  move(){this.down()},   // dragging a finger through bubbles pops them too
-  pop(b){this.list.splice(this.list.indexOf(b),1);blip(900-b.r*7,.15,'triangle');buzz(8);this.fx.burst(b.x,b.y,14,[b.c],5);
-    this.n++;this.p=this.n/this.need;if(this.n>=this.need)this.done=true;setTimeout(()=>this.spawn(rnd(30,W-30),H+80),500)},
-  draw(t){
-    for(const b of this.list){if(!reduce){b.y+=b.vy;b.x+=Math.sin(t/900+b.ph)*.4}if(b.y<-b.r*2)b.y=H+b.r*2;
-      const w=reduce?1:1+Math.sin(t/300+b.ph)*.05;ctx.fillStyle=b.c;ctx.beginPath();ctx.ellipse(b.x,b.y,b.r*w,b.r/w,0,0,6.28);ctx.fill();
-      ctx.fillStyle=b.c==='#ffffff'?'#2436ff':'#ffffff';ctx.beginPath();ctx.arc(b.x-b.r*.38,b.y-b.r*.4,b.r*.13,0,6.28);ctx.fill()}
-    this.fx.draw()}
-};
-
-// ===== 2. HOLD (red) : hold a finger, pull the dots together =====
-const hold={
-  cue:'Hold',field:['#ff3b1f','#0a0a0a'],
-  init(){this.list=[];this.done=false;this.p=0;this.t0=0;const g=26;for(let x=g/2;x<W;x+=g)for(let y=g/2;y<H;y+=g)this.list.push({hx:x,hy:y,x,y,vx:0,vy:0})},
-  draw(){
-    let near=0;const R=100;
-    for(const p of this.list){
-      const dx=p.x-M.x,dy=p.y-M.y,d=Math.hypot(dx,dy)+.001;
-      if(M.down){p.vx-=dx/d*Math.min(d,300)*.004;p.vy-=dy/d*Math.min(d,300)*.004;if(d<60){p.vx+=dx/d*.35;p.vy+=dy/d*.35}}
-      else{if(M.active&&d<150){const f=(1-d/150)*1.6;p.vx+=dx/d*f;p.vy+=dy/d*f}p.vx+=(p.hx-p.x)*.05;p.vy+=(p.hy-p.y)*.05}
-      p.vx*=M.down?.92:.86;p.vy*=M.down?.92:.86;p.x+=p.vx;p.y+=p.vy;
-      if(M.down&&d<R)near++;
-      const s=Math.hypot(p.vx,p.vy);ctx.fillStyle=s>1.2?'#ffffff':'#0a0a0a';ctx.beginPath();ctx.arc(p.x,p.y,2+Math.min(s*.6,4),0,6.28);ctx.fill()}
-    const f=M.down?near/(this.list.length*.9):0;this.p+=(f-this.p)*.15;
-    if(f>=1&&!this.done){this.t0=this.t0||performance.now();if(performance.now()-this.t0>350)this.done=true}else if(f<1)this.t0=0;
-  }
-};
-
-// ===== 3. EAT (black) : slime eats 8 dots =====
-const eat={
-  cue:'Eat',field:['#0a0a0a','#ffffff'],cols:['#2436ff','#ff3b1f','#ffffff'],
-  init(){this.seg=Array.from({length:30},()=>({x:W/2,y:H*.6}));this.hx=W/2;this.hy=H*.6;this.n=0;this.need=8;this.done=false;this.p=0;this.fx=Parts();
-    this.food=Array.from({length:this.need},(_,i)=>this.food1(i))},
-  food1(){return {x:rnd(40,W-40),y:rnd(110,H-80),r:rnd(12,18),ph:rnd(0,6.28)}},
-  draw(t){
-    if(M.active){this.hx=M.x;this.hy=M.y}
-    let px=this.hx,py=this.hy;this.seg.forEach((s,i)=>{s.x+=(px-s.x)*(.34-i*.007);s.y+=(py-s.y)*(.34-i*.007);px=s.x;py=s.y});
-    for(let i=this.food.length-1;i>=0;i--){const f=this.food[i],r=f.r+(reduce?0:Math.sin(t/250+f.ph)*2);
-      ctx.fillStyle='#ffffff';ctx.beginPath();ctx.arc(f.x,f.y,r,0,6.28);ctx.fill();
-      if(Math.hypot(f.x-this.seg[0].x,f.y-this.seg[0].y)<r+22){this.food.splice(i,1);this.n++;this.p=this.n/this.need;blip(500+this.n*60,.12,'square',.07);buzz(10);this.fx.burst(f.x,f.y,10,this.cols,4);if(this.n>=this.need)this.done=true}}
-    for(let i=this.seg.length-1;i>=0;i--){const s=this.seg[i],r=5+(this.seg.length-i)*1.1;ctx.fillStyle=this.cols[i%3];ctx.beginPath();ctx.arc(s.x,s.y,r,0,6.28);ctx.fill()}
-    this.fx.draw(.05)}
-};
-
-// ===== 4. FLING (navy) : throw letters through the moving target 5 times =====
-const fling={
-  cue:'Fling',field:['#050a5c','#ffffff'],cols:['#ffffff','#2436ff','#ff3b1f'],words:'ACHOO아츄에취!?',
-  init(){this.list=[];this.drag=null;this.n=0;this.need=5;this.done=false;this.p=0;this.fx=Parts();this.tr=Math.max(38,W*.1);this.tx=W/2;this.ty=H*.3},
-  down(){const p=[...this.list].reverse().find(l=>Math.hypot(l.x-M.x,l.y-M.y)<l.s*.7);
-    if(p)this.drag=p;else{this.drag={ch:pick([...this.words]),x:M.x,y:M.y,vx:0,vy:0,s:rnd(64,96),rot:rnd(-.5,.5),vr:rnd(-.08,.08),c:pick(this.cols)};this.list.push(this.drag)}blip(300,.08,'square',.06)},
-  up(){if(this.drag){this.drag.vx=M.sx*1.3;this.drag.vy=M.sy*1.3;this.drag=null}},
-  draw(t){
-    this.tx=W/2+Math.sin(t/(reduce?4000:850))*(W/2-this.tr-12);
-    ctx.fillStyle='#ff3b1f';ctx.beginPath();ctx.arc(this.tx,this.ty,this.tr,0,6.28);ctx.fill();
-    ctx.fillStyle='#ffffff';ctx.beginPath();ctx.arc(this.tx,this.ty,this.tr*.45,0,6.28);ctx.fill();
-    ctx.textAlign='center';ctx.textBaseline='middle';
-    for(let i=this.list.length-1;i>=0;i--){const l=this.list[i];
-      if(l===this.drag){l.x+=(M.x-l.x)*.55;l.y+=(M.y-l.y)*.55;l.vx=l.vy=0;l.rot*=.9}
-      else{l.vy+=.45;l.x+=l.vx;l.y+=l.vy;l.rot+=l.vr;const fl=H-l.s*.5-16;
-        if(l.y>fl){l.y=fl;l.vy*=-.5;l.vx*=.9;l.vr*=.8}if(l.y<l.s/2){l.y=l.s/2;l.vy*=-.5}
-        if(l.x<l.s/2||l.x>W-l.s/2){l.x=Math.max(l.s/2,Math.min(W-l.s/2,l.x));l.vx*=-.7}}
-      if(Math.hypot(l.x-this.tx,l.y-this.ty)<this.tr+l.s*.3){this.list.splice(i,1);if(this.drag===l)this.drag=null;this.n++;this.p=this.n/this.need;blip(700+this.n*80,.14,'triangle',.1);buzz(15);this.fx.burst(l.x,l.y,18,this.cols,6);if(this.n>=this.need)this.done=true;continue}
-      ctx.save();ctx.translate(l.x,l.y);ctx.rotate(l.rot);ctx.font=`900 ${l.s}px Chivo,system-ui,sans-serif`;ctx.fillStyle=l.c;ctx.fillText(l.ch,0,0);ctx.restore()}
-    if(this.list.length>30)this.list.shift();
-    this.fx.draw()}
-};
-
-// ===== 5. SNEEZE (paper) : hold to charge, release inside the red band =====
-const sneeze={
-  cue:'Sneeze',field:['#ffffff','#0a0a0a'],lo:.78,hi:.92,over:.97,
-  init(){this.m=0;this.t0=0;this.shake=0;this.done=false;this.p=0;this.won=false;this.fx=Parts()},
-  down(){if(this.won)return;this.t0=performance.now();blip(180,.2,'sine',.05)},
-  up(){if(this.won||!this.t0)return;const m=this.m;this.t0=0;
-    if(m>=this.lo&&m<=this.hi)this.win();else if(m>.05)this.fail()},
-  fail(){this.t0=0;this.m=0;this.shake=performance.now();buzz([30,40,30]);blip(120,.25,'sawtooth',.06)},
-  win(){this.won=true;this.fx.burst(W/2,H/2,140,['#ff3b1f','#2436ff','#0a0a0a','#050a5c'],11);jingle();buzz([20,40,20,40,60]);
-    cue.textContent='Achoo!';cue.classList.remove('show');void cue.offsetWidth;cue.classList.add('show');setTimeout(()=>{this.done=true},1100)},
-  draw(t){
-    const R=Math.min(W,H*.8)*.42,cx=W/2,cy=H/2;
-    if(this.t0){this.m=Math.min(1,(performance.now()-this.t0)/1800);if(this.m>this.over)this.fail()}
-    this.p=this.m*.9;
-    let ox=0;if(this.shake&&performance.now()-this.shake<350)ox=Math.sin(t/20)*10;
-    ctx.save();ctx.translate(ox,0);
-    if(!this.won){
-      ctx.strokeStyle='#ff3b1f';ctx.lineWidth=R*(this.hi-this.lo);ctx.beginPath();ctx.arc(cx,cy,R*(this.lo+this.hi)/2,0,6.28);ctx.stroke();
-      const r=Math.max(6,R*this.m)+(this.t0&&!reduce?Math.sin(t/40)*this.m*4:0);
-      ctx.fillStyle='#0a0a0a';ctx.beginPath();ctx.arc(cx,cy,r,0,6.28);ctx.fill();
-      if(this.m>=this.lo&&this.m<=this.hi){ctx.fillStyle='#ff3b1f';ctx.beginPath();ctx.arc(cx,cy,R*.08,0,6.28);ctx.fill()}}
-    ctx.restore();this.fx.draw(.18)}
-};
-
-// ===== 6. ENDING : the eye opens. (reached only after all five watchers were found) =====
-const ending={
-  cue:'Again',field:['#0a0a0a','#ffffff'],keepCanvas:true,low:true,
-  get intro(){return STORY.endings[Math.min(round,STORY.endings.length-1)]},
-  init(){this.t0=performance.now();this.closing=0;this.ready=false;this.done=false;this.p=0;this.px=0;this.py=0},
-  after(){this.closing=performance.now();setTimeout(()=>{this.ready=true},1100)},
-  down(){if(this.ready){this.ready=false;resetSecrets();round++;try{localStorage.setItem('achoo.round',round)}catch(e){}go(0,M.x,M.y,STORY.intro[Math.min(round,STORY.intro.length-1)])}},
-  draw(t){
-    const now=performance.now(),cx=W/2,cy=H*.4,rx=W*.42,full=W*.24;
-    let open=Math.min(1,(now-this.t0)/1600);if(this.closing)open=Math.max(0,1-(now-this.closing)/900);
-    const ry=Math.max(1,full*open*(reduce?1:1-.04*Math.sin(t/700)));
-    ctx.fillStyle='#ffffff';ctx.beginPath();ctx.ellipse(cx,cy,rx,ry,0,0,6.28);ctx.fill();
-    const tx=M.active||M.down?M.x:cx,ty=M.active||M.down?M.y:cy;
-    this.px+=((tx-cx)*.12-this.px)*.15;this.py+=((ty-cy)*.12-this.py)*.15;
-    const lim=Math.min(rx*.35,Math.abs(this.px)),ix=cx+Math.sign(this.px)*lim,iy=cy+Math.max(-ry*.4,Math.min(ry*.4,this.py));
-    ctx.save();ctx.beginPath();ctx.ellipse(cx,cy,rx,ry,0,0,6.28);ctx.clip();
-    ctx.fillStyle='#ff3b1f';ctx.beginPath();ctx.arc(ix,iy,full*.62,0,6.28);ctx.fill();
-    ctx.fillStyle='#0a0a0a';ctx.beginPath();ctx.arc(ix,iy,full*.28,0,6.28);ctx.fill();ctx.restore()}
-};
-
-const rooms=[pop,hold,eat,fling,sneeze,ending];
-const PLAY=5;                     // rooms the HUD shows; the ending is the hidden sixth
-// what you read after clearing room i. Short, a little wrong on purpose.
-const DEFAULT={intro:['코가 간지럽다.'],rounds:[{after:['거품은 누군가의 숨이었다.','점들은 모두 같은 곳을 향했다.','먹을수록 허기가 졌다.','던진 글자가 눈을 떴다.','뭔가 빠뜨린 것 같다.']}],
-  whispers:['들키면','재채기가','나온다','그러니까','숨어라'],endings:[['에취.','…','아무도 없는 줄 알았지?','먼지는 너였다.']],endpoint:null};
-let STORY=DEFAULT,round=0,pending=null;
-async function loadStory(){try{const r=await fetch('story.json',{cache:'no-cache'});if(r.ok)STORY=Object.assign({},DEFAULT,await r.json())}catch(e){}}
-const R=()=>STORY.rounds[Math.min(round,STORY.rounds.length-1)];
-// optional generated line (see worker/). Always races a timeout and falls back to story.json.
-function ai(kind){
-  if(!STORY.endpoint)return null;
-  return fetch(STORY.endpoint,{method:'POST',headers:{'content-type':'application/json'},signal:AbortSignal.timeout(2500),
-    body:JSON.stringify({kind,room:lvl,round,secrets,style:R().after})}).then(r=>r.json()).then(j=>j.line?String(j.line).slice(0,40):null).catch(()=>null);
-}
-let lvl=0,room=pop,busy=false,secrets=[0,0,0,0,0],fresh=true;
-try{lvl=Math.min(PLAY-1,Math.max(0,+localStorage.getItem('achoo.lvl')||0));
-  const s=localStorage.getItem('achoo.sec');if(s)secrets=s.split('').map(Number);
-  fresh=!localStorage.getItem('achoo.lvl');round=+localStorage.getItem('achoo.round')||0}catch(e){}
-const saveSecrets=()=>{try{localStorage.setItem('achoo.sec',secrets.join(''))}catch(e){}};
-const resetSecrets=()=>{secrets=[0,0,0,0,0];saveSecrets()};
-
-// ---- HUD ----
-rooms.slice(0,PLAY).forEach((r,i)=>{const b=document.createElement('button');b.setAttribute('aria-label','방 '+(i+1));b.innerHTML='<i></i>';b.onclick=e=>go(i,e.clientX,e.clientY);steps.appendChild(b)});
-function hud(){[...steps.children].forEach((b,i)=>{b.classList.toggle('done',i<lvl);b.classList.toggle('now',i===lvl);b.classList.toggle('sec',!!secrets[i])})}
-function showCue(){cue.textContent=room.cue;cue.classList.remove('show');void cue.offsetWidth;cue.classList.add('show')}
-function paint(){root.style.setProperty('--field',room.field[0]);root.style.setProperty('--ink',room.field[1]);themeMeta.content=room.field[0]}
-
-// ---- story lines: typed one character at a time, tap to skip the wait ----
-const lineEl=document.getElementById('line');
-const wait=ms=>new Promise(r=>setTimeout(r,ms));
-async function typeLine(text,low){
-  lineEl.className=low?'low':'';lineEl.textContent='';lineEl.classList.add('on');
-  let skip=false;const sk=()=>{skip=true};lineEl.addEventListener('pointerdown',sk);
-  if(reduce)lineEl.textContent=text;else for(const ch of text){lineEl.textContent+=ch;if(ch!==' ')blip(1200+Math.random()*200,.03,'square',.015);await wait(55)}
-  for(let i=0;i<(reduce?30:24)&&!skip;i++)await wait(60);
-  lineEl.removeEventListener('pointerdown',sk);lineEl.classList.remove('on');await wait(320);
-}
-
-// ---- the watcher: one small eye hides in every room. Never explained. ----
-const rings=[];function ring(x,y,r=46){if(!reduce)rings.push({x,y,r,t:performance.now()})}
-let eye=null,eyeAt=0;
-function armEye(){eye=null;eyeAt=secrets[lvl]||lvl>=PLAY?0:performance.now()+6500}
-function eyeHit(){return eye&&Math.hypot(eye.x-M.x,eye.y-M.y)<30}
-function drawEye(t){
-  if(!eye){if(eyeAt&&performance.now()>eyeAt&&!busy){eye={x:rnd(30,W-30),y:rnd(90,H-70),ph:rnd(0,6.28),born:performance.now()};eyeAt=0}return}
-  const k=Math.min(1,(performance.now()-eye.born)/1200),r=9*k;eye.x+=Math.sin(t/1900+eye.ph)*.18;eye.y+=Math.cos(t/2300+eye.ph)*.14;
-  const blink=(t%3200)<140?.15:1,ink=room.field[1],bg=room.field[0];
-  ctx.fillStyle=ink;ctx.beginPath();ctx.ellipse(eye.x,eye.y,r*1.5,r*blink,0,0,6.28);ctx.fill();
-  const a=Math.atan2(M.y-eye.y,M.x-eye.x),d=M.active?3:0;
-  ctx.fillStyle=bg;ctx.beginPath();ctx.arc(eye.x+Math.cos(a)*d,eye.y+Math.sin(a)*d,r*.5*blink,0,6.28);ctx.fill();
-}
-const whisperEl=document.getElementById('whisper');let wt;
-function whisper(s){whisperEl.textContent=s;whisperEl.classList.add('on');clearTimeout(wt);wt=setTimeout(()=>whisperEl.classList.remove('on'),2400)}
-function collectEye(){const at=eye;secrets[lvl]=1;saveSecrets();eye=null;hud();blip(160,.4,'sine',.1);buzz([10,40,10]);ring(at.x,at.y,60);whisper(STORY.whispers[lvl]||'')}
-
-// ---- level flow ----
-function start(i){lvl=i;room=rooms[i];try{if(i<PLAY)localStorage.setItem('achoo.lvl',i)}catch(e){}
-  paint();hud();room.init();armEye();pending=i<PLAY?ai('after'):null;cv.classList.toggle('hide',!room.keepCanvas)}
-async function reveal(line){
-  const intro=room.intro||(line?[line]:[]);
-  for(const s of intro)await typeLine(s,room.low);
-  cv.classList.remove('hide');if(room.after)room.after();else showCue();
-  if(eyeAt)eyeAt=performance.now()+6500;busy=false;
-}
-function go(i,x,y,line){
-  if(busy)return;busy=true;
-  if(reduce){start(i);reveal(line);return}
-  burst.style.setProperty('--next',rooms[i].field[0]);burst.style.setProperty('--bx',x+'px');burst.style.setProperty('--by',y+'px');
-  burst.classList.add('go');setTimeout(()=>start(i),170);
-  setTimeout(()=>{burst.classList.remove('go');reveal(line)},480);
-}
-async function win(){
-  if(busy)return;busy=true;jingle();buzz([20,30,20]);
-  const x=M.x>0?M.x:W/2,y=M.y>0?M.y:H/2,fixed=R().after[lvl];
-  const last=lvl===PLAY-1,all=secrets.every(Boolean);
-  const gen=last&&all?null:await Promise.race([pending,wait(400)]);   // generated line if it's ready, else story.json
-  busy=false;
-  if(last&&all)return go(PLAY,x,y);
-  go(last?0:lvl+1,x,y,gen||fixed);
-}
-
-// ---- input ----
-function pt(e){const nx=e.clientX,ny=e.clientY;M.vx=nx-M.x;M.vy=ny-M.y;M.sx=M.sx*.6+M.vx*.4;M.sy=M.sy*.6+M.vy*.4;M.x=nx;M.y=ny}
-cv.addEventListener('pointermove',e=>{if(busy)return;if(!M.active&&e.pointerType==='touch')return;pt(e);M.active=true;room.move&&room.move(e)});
-cv.addEventListener('pointerdown',e=>{if(busy)return;try{cv.setPointerCapture(e.pointerId)}catch(_){}
-  if(AC&&AC.state==='suspended')AC.resume();M.x=e.clientX;M.y=e.clientY;
-  ring(M.x,M.y);if(eyeHit()){collectEye();return}
-  M.sx=M.sy=0;M.down=true;M.active=true;room.down&&room.down(e)});
-const release=e=>{if(!M.down)return;M.down=false;if(e.pointerType==='touch')M.active=false;room.up&&room.up(e)};
-cv.addEventListener('pointerup',release);cv.addEventListener('pointercancel',release);
-document.addEventListener('gesturestart',e=>e.preventDefault());
-document.addEventListener('contextmenu',e=>e.preventDefault());
-
-function resize(){W=innerWidth;H=innerHeight;cv.width=W*DPR;cv.height=H*DPR;ctx.setTransform(DPR,0,0,DPR,0,0);room&&room.init&&room.init()}
-addEventListener('resize',resize);
-resize();room=rooms[lvl];room.init();paint();hud();
-busy=true;
-(async()=>{await loadStory();if(fresh&&lvl===0){cv.classList.add('hide');await typeLine(STORY.intro[0]);cv.classList.remove('hide')}showCue();busy=false;armEye();pending=ai('after')})();
-let shown=0;
-function loop(t){
-  ctx.clearRect(0,0,W,H);room.draw(t);drawEye(t);
-  for(let i=rings.length-1;i>=0;i--){const g=rings[i],k=(performance.now()-g.t)/380;if(k>=1){rings.splice(i,1);continue}
-    ctx.globalAlpha=1-k;ctx.strokeStyle=room.field[1];ctx.lineWidth=3;ctx.beginPath();ctx.arc(g.x,g.y,g.r*(1-Math.pow(1-k,3)),0,6.28);ctx.stroke();ctx.globalAlpha=1}
-  shown+=((room.p||0)-shown)*.2;fill.style.transform='scaleX('+Math.min(1,shown).toFixed(3)+')';
-  if(room.done&&!busy){room.done=false;shown=0;win()}
-  requestAnimationFrame(loop);
-}
-requestAnimationFrame(loop);
-if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('sw.js').catch(()=>{});
-</script>
+<script src="engine.js"></script>
+<script src="rooms.js"></script>
+<script>boot()</script>
 </body>
 </html>

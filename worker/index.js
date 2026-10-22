@@ -23,7 +23,7 @@ export default {
     let c;
     try { c = await req.json(); } catch { return Response.json({ line: null }, { headers: h }); }
     const ex = Array.isArray(c.style) ? c.style.slice(0, 5).join(' / ') : '';
-    const user = `방 ${Number(c.room) + 1}/5을 방금 깼다. ${Number(c.round) + 1}회차. 찾은 눈: ${(c.secrets || []).filter(Boolean).length}개.\n예시: ${ex}`;
+    const user = `방금 '${String(c.room || '').slice(0, 12)}' 방을 깼다. 단계 ${Number(c.tier) || 1}/4, 깊이 ${Math.round((c.depth || 0) * 100)}%, ${Number(c.round) + 1}회차.\n방금 한 행동이 사실은 공포 영화의 한 장면이었다는 식으로 소급해서 섬뜩하게 다시 말해라. 깊을수록 더 기괴하게.\n예시: ${ex}`;
     const r = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'x-api-key': env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
