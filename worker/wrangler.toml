@@ -1,4 +1,0 @@
-name = "achoo-story"
-main = "index.js"
-compatibility_date = "2026-01-01"
-# secret: wrangler secret put ANTHROPIC_API_KEY
