@@ -1,9 +1,13 @@
 # Achoo
 
-킬링타임용 예쁜 쓰레기. 거품, 자석, 슬라임, 글자 네 칸짜리 인터랙션 장난감 방입니다.
+킬링타임용 예쁜 쓰레기. 손가락으로 노는 다섯 칸짜리 모바일 웹앱입니다.
 
-`index.html` 하나로 돌아갑니다. 브라우저에서 열면 됩니다.
+방마다 목표가 하나 있고, 달성하면 재채기처럼 색이 퍼지며 다음 방으로 넘어갑니다.
 
-- 서체: Chivo (Google Fonts)
-- 디자인 방향: colour-chapters (방마다 한 가지 단색 면), design-taste-frontend 스킬로 배정
-- 모션/타깃 수치: omd-feel 규칙 (ease-out 진입, 48px 타깃, prefers-reduced-motion 대응)
+1. Pop: 거품 10개 터뜨리기
+2. Hold: 누르고 있어서 점을 한곳에 모으기
+3. Eat: 슬라임으로 점 8개 먹기
+4. Fling: 글자를 던져 움직이는 과녁 5번 맞히기
+5. Sneeze: 누르고 있다가 빨간 띠 안에서 놓기
+
+`index.html` 하나로 돌아가고, `manifest.webmanifest`와 `sw.js` 덕분에 홈 화면에 추가해서 앱처럼 쓸 수 있습니다.

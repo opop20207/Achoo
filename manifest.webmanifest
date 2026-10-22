@@ -1,0 +1,12 @@
+{
+  "name": "Achoo",
+  "short_name": "Achoo",
+  "description": "킬링타임용 예쁜 쓰레기. 다섯 칸짜리 손가락 장난감.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#2436ff",
+  "theme_color": "#2436ff",
+  "icons": [{"src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable"}]
+}
