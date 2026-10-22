@@ -83,16 +83,31 @@ function drawIcon(id,x,y,s,col,f){   // one pictogram per puzzle; f = [bg,ink,ac
 function miniItem(kind,x,y,s,f){
   if(kind==='arrows')run.arrows.forEach((d,i)=>drawArrow(d,x+i*s*1.1,y,s*.42,f[2]));
   else if(kind==='key')drawKey(x+s*.6,y,s*.55,f[2]);
+  else if(kind==='rkey')drawKey(x+s*.6,y,s*.55,f[3]);
   else if(kind==='photo'){ctx.fillStyle='#f4eedd';ctx.fillRect(x,y-s*.5,s,s);drawClockFace(x+s*.5,y,s*.36,TIME_H,TIME_M,'#222','#f4eedd')}
   else if(kind==='badge'){ctx.fillStyle=f[1];ctx.fillRect(x,y-s*.5,s*.8,s);ctx.fillStyle=f[0];ctx.beginPath();ctx.arc(x+s*.4,y-s*.1,s*.2,0,6.28);ctx.fill();ctx.fillRect(x+s*.15,y+s*.15,s*.5,s*.15)}
   else if(kind==='colors')run.colors.forEach((c,i)=>{ctx.fillStyle=COLORS[c];ctx.beginPath();ctx.arc(x+i*s*.8+s*.3,y,s*.3,0,6.28);ctx.fill()});
   else if(kind==='digits')run.digits.forEach((d,i)=>{ctx.fillStyle=f[1];ctx.globalAlpha=.9;ctx.fillRect(x+i*s*1.2,y-s*.5,s,s);ctx.globalAlpha=1;drawDice(d,x+i*s*1.2+s*.5,y,s*.9,f[0])});
 }
-const NOTE_W={arrows:86,key:34,photo:26,badge:24,colors:64,digits:70};
-function noteList(){const S=run.solved,l=[];if(S.lantern)l.push('arrows');if(S.gaze)l.push('key');if(S.tear)l.push('photo');if(S.clock)l.push('badge');if(S.wires)l.push('colors');if(S.wipe)l.push('digits');if(S.dial)l.push('key');return l}
+const NOTE_W={arrows:86,key:34,rkey:34,photo:26,badge:24,colors:64,digits:70};
+function noteList(){const S=run.solved,l=[];if(S.lantern)l.push('arrows');if(S.gaze)l.push('key');if(S.tear)l.push('photo');if(S.clock)l.push('badge');if(S.wires)l.push('colors');if(S.wipe)l.push('digits');if(S.dial)l.push('rkey');return l}
+let noteRects=[],inspect=null;
 function drawNotes(){
-  if(!run||room.tier==='title'||room.tier==='end'||room.tier==='archive')return;const f=room.field;let x=14;
-  for(const k of noteList()){miniItem(k,x,H-34,18,f);x+=NOTE_W[k]}
+  noteRects=[];if(!run||room.tier==='title'||room.tier==='end'||room.tier==='archive')return;const f=room.field;let x=10;
+  for(const k of noteList()){const w=NOTE_W[k];
+    ctx.fillStyle=f[1];ctx.globalAlpha=.1;ctx.fillRect(x-2,H-58,w-2,44);ctx.globalAlpha=1;
+    miniItem(k,x+4,H-36,18,f);noteRects.push({k,x:x-4,y:H-62,w:w+4,h:52});x+=w}
+}
+const noteAt=(px,py)=>noteRects.find(r=>px>r.x&&px<r.x+r.w&&py>r.y&&py<r.y+r.h);
+function drawNoteBig(k,f){   // the same clue, large enough to read
+  const cx=W/2,cy=H*.42;
+  if(k==='photo'){const pw=Math.min(W*.94,400);drawPanel(ctx,0,(W-pw)/2,cy-pw*.36,pw,pw*.72)}
+  else if(k==='arrows')run.arrows.forEach((d,i)=>drawArrow(d,W*(.17+.222*i),cy,Math.min(W*.085,36),f[2]));
+  else if(k==='colors')run.colors.forEach((c,i)=>{ctx.fillStyle=COLORS[c];ctx.beginPath();ctx.arc(W*(.17+.222*i),cy,Math.min(W*.08,34),0,6.28);ctx.fill()});
+  else if(k==='digits')run.digits.forEach((v,i)=>{const s=Math.min(W*.24,96),x=W*(.2+.3*i);ctx.fillStyle=f[1];ctx.fillRect(x-s/2,cy-s/2,s,s);drawDice(v,x,cy,s*.9,f[0])});
+  else if(k==='key')drawKey(cx,cy,70,f[2]);
+  else if(k==='rkey')drawKey(cx,cy,70,f[3]);
+  else if(k==='badge'){const s=90;ctx.fillStyle=f[1];ctx.fillRect(cx-s*.6,cy-s*.8,s*1.2,s*1.6);ctx.fillStyle=f[0];ctx.beginPath();ctx.arc(cx,cy-s*.2,s*.3,0,6.28);ctx.fill();ctx.fillRect(cx-s*.35,cy+s*.25,s*.7,s*.2)}
 }
 
 // the story, as four pictures. drawPanel(c,i,x,y,w,h): 0 holding hands · 1 the fire · 2 the lock · 3 morning
@@ -104,7 +119,7 @@ function drawPanel(c,i,x,y,w,h){
   const bg=['#241c3f','#150a0a','#0c1c24','#ece6d2'][i];c.fillStyle=bg;c.fillRect(x,y,w,h);
   c.fillStyle='rgba(255,255,255,.07)';c.fillRect(x,y+h*.78,w,h*.22);
   if(i===0){c.fillStyle='#3a3366';c.fillRect(x+w*.1,y+h*.12,w*.26,h*.34);c.fillStyle='#f4eedd';c.beginPath();c.arc(x+w*.28,y+h*.24,u*.5,0,6.28);c.fill();   // window, moon
-    const sv=ctx;ctx=c;drawClockFace(x+w*.78,y+h*.24,u*1.3,TIME_H,TIME_M,'#f4eedd','#241c3f');ctx=sv;
+    const sv=ctx;ctx=c;drawClockFace(x+w*.76,y+h*.26,u*1.75,TIME_H,TIME_M,'#f4eedd','#241c3f');ctx=sv;
     person(c,x+w*.42,y+h*.62,u*3.2,'#f4eedd',true);person(c,x+w*.62,y+h*.7,u*2.2,'#ffb347',false);
     c.strokeStyle='#f4eedd';c.lineWidth=u*.18;c.beginPath();c.moveTo(x+w*.45,y+h*.66);c.lineTo(x+w*.59,y+h*.72);c.stroke()}
   else if(i===1){for(let k=0;k<5;k++){c.fillStyle=['#ff7a1a','#ffb347','#ffd88a'][k%3];c.beginPath();const fx=x+w*(.14+k*.05),fh=u*(3.2-k*.4);c.moveTo(fx-u*.7,y+h*.78);c.lineTo(fx,y+h*.78-fh);c.lineTo(fx+u*.7,y+h*.78);c.fill()}
@@ -225,8 +240,10 @@ function pt(e){const nx=e.clientX,ny=e.clientY;M.vx=nx-M.x;M.vy=ny-M.y;M.sx=M.sx
 cv.addEventListener('pointermove',e=>{if(busy)return;if(!M.active&&e.pointerType==='touch')return;pt(e);M.active=true;room.move&&room.move(e)});
 cv.addEventListener('pointerdown',e=>{
   if(card){if(performance.now()-card.t0>800){card=null;busy=false}return}
+  if(inspect){if(performance.now()-inspect.t0>250){inspect=null;busy=false}return}
   if(busy)return;try{cv.setPointerCapture(e.pointerId)}catch(_){}
   if(AC&&AC.state==='suspended')AC.resume();pt(e);ring(M.x,M.y);
+  {const n=noteAt(M.x,M.y);if(n){inspect={k:n.k,t0:performance.now()};busy=true;blip(380,.08,'triangle',.07);return}}
   if(frameHit()){const i=run.f;frame=null;meta.frames[i]=1;saveMeta();showCard(i);return}
   M.sx=M.sy=0;M.down=true;M.active=true;room.down&&room.down(e)});
 const release=e=>{if(!M.down)return;M.down=false;if(e.pointerType==='touch')M.active=false;room.up&&room.up(e)};
@@ -248,6 +265,7 @@ function loop(t){
     ctx.globalAlpha=1-k;ctx.strokeStyle=room.field[1];ctx.lineWidth=3;ctx.beginPath();ctx.arc(g.x,g.y,g.r*(1-Math.pow(1-k,3)),0,6.28);ctx.stroke();ctx.globalAlpha=1}
   if(card){const k=clamp01((performance.now()-card.t0)/500),pw=Math.min(W*.86,360),ph=pw*.72;ctx.fillStyle='rgba(0,0,0,'+.8*k+')';ctx.fillRect(0,0,W,H);
     ctx.globalAlpha=k;drawPanel(ctx,card.i,(W-pw)/2,H*.3,pw,ph);ctx.globalAlpha=1}
+  if(inspect){const k=clamp01((performance.now()-inspect.t0)/200);ctx.fillStyle='rgba(0,0,0,'+.82*k+')';ctx.fillRect(0,0,W,H);ctx.globalAlpha=k;drawNoteBig(inspect.k,room.field);ctx.globalAlpha=1}
   shown+=((room.p||0)-shown)*.2;fill.style.transform='scaleX('+Math.min(1,shown).toFixed(3)+')';
   if(!busy){
     if(room.done&&room.tier==='puz'){room.done=false;shown=0;solved()}
