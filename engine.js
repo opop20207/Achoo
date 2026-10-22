@@ -72,10 +72,10 @@ const rings=[];const ring=(x,y,r=46)=>{if(!reduce)rings.push({x,y,r,t:performanc
 const ROOMS={};const reg=r=>(ROOMS[r.id]=r);
 
 // ---- story + meta (persisted) ----
-const DEFAULT={chambers:[{intro:['코가 간지럽다.','문이 눈꺼풀처럼 닫혀 있다.','아래 네 칸이 비어 있다.'],open:['막이 열렸다.']},{intro:['소리가 안으로만 들어온다.'],open:['속삭임이 멈췄다.']},{intro:['따뜻하다. 너무.'],open:['입이 다물렸다.']},{intro:['빛이 닿지 않는 곳이 없다.'],open:[]}],
-  insight:{align:'흩어진 점들이 하나의 모양이었다.',lantern:'어둠이 가리고 있던 건 방향이었다.',gaze:'눈들이 한곳을 보기 시작했다.',pulse:'박동에는 끝이 있었다.',letters:'글자들은 원래 하나의 말이었다.'},
-  hints:{align:'돌리면 소리가 변한다.',lantern:'빛이 닿은 곳만 말한다.',gaze:'답은 다른 방의 어둠에 있다.',pulse:'멈추는 곳까지 세어라.',letters:'흩어진 건 원래 하나였다.'},
-  lore:['여기는 코 속이다.'],endings:{plain:['문이 열렸다.','…다시 간지럽다.'],watched:['문이 열렸다.','아직 모자란다.'],all:['문이 열렸다.','먼지는 너였다.'],loop:['…','더 큰 코가 간지럽다.','에취.']},endpoint:null};
+const DEFAULT={chambers:[{intro:['에취.','먼지 때문에 눈을 떴다.','문 아래 네 칸이 비어 있다.'],open:['철컥.']},{intro:['3층. 서늘한 복도.'],open:['문이 열렸다.']},{intro:['지하 기록실.'],open:['문이 열렸다.']},{intro:['옥상으로 가는 마지막 문.'],open:[]}],
+  insight:{align:'흩어진 사진 조각이 한 장면이 됐다.',lantern:'어둠이 가리고 있던 건 방향이었다.',gaze:'눈들이 한곳을 보기 시작했다.',pulse:'심장 소리에는 끝이 있었다.',letters:'찢긴 글자들이 하나의 말이 됐다.'},
+  hints:{align:'돌리면 소리가 변한다.',lantern:'빛이 닿은 곳만 말한다.',gaze:'답은 다른 방의 어둠에 있다.',pulse:'멈추는 곳까지 세어라.',letters:'찢긴 건 원래 하나였다.'},
+  lore:['이곳은 문을 닫은 병원이다.'],endings:{plain:['마지막 문이 열렸다.','에취.'],watched:['마지막 문이 열렸다.','아직 끝이 아니다.'],all:['마지막 문이 열렸다.','먼지는 나였다.'],loop:['…','에취.']},endpoint:null};
 let STORY=DEFAULT;
 async function loadStory(){try{const r=await fetch('story.json',{cache:'no-cache'});if(r.ok)STORY=Object.assign({},DEFAULT,await r.json())}catch(e){}}
 let meta={runs:0,eyes:0,seen:{},ends:{},chamber:0,escaped:{}};
@@ -90,7 +90,7 @@ function ai(id){
 
 // ---- state ----
 let room,run=null,busy=true,pending=null,lastAct=0,sel=0;
-const WORDS=['ITCH','HIDE','WATCH','BREATH','SILENT','SNEEZE'];
+const WORDS=['WAKE','LIGHT','FLOOR','ALONE','WATCH','LOCKED'];   // only words with a single anagram
 
 // ---- HUD ----
 function hud(){steps.innerHTML='';if(!run||room.tier==='title'||room.tier==='end')return;
@@ -212,7 +212,7 @@ function openArchive(){
   archEl.innerHTML='';const box=document.createElement('div');box.className='in';
   STORY.lore.forEach((s,i)=>{const p=document.createElement('p');p.textContent=i<meta.eyes?s:'…';if(i>=meta.eyes)p.className='dim';box.appendChild(p)});
   const n=document.createElement('p');n.className='nums';
-  n.textContent=`방 ${Object.keys(meta.escaped).length}/4  끝 ${Object.keys(meta.ends).length}/4  회 ${meta.runs}`;
+  n.textContent=`층 ${Object.keys(meta.escaped).length}/4  끝 ${Object.keys(meta.ends).length}/4  회 ${meta.runs}`;
   box.appendChild(n);archEl.appendChild(box);archEl.classList.add('on');
 }
 $('arch').addEventListener('click',openArchive);
