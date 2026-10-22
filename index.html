@@ -46,6 +46,10 @@
   #arch i{display:block;width:40px;height:24px;border:3px solid var(--ink);border-radius:50%/60%;position:relative}
   #arch i::after{content:"";position:absolute;left:50%;top:50%;width:10px;height:10px;margin:-5px;border-radius:50%;background:var(--ink)}
   #arch:focus-visible{outline:3px solid var(--ink);outline-offset:-4px}
+  #back{all:unset;box-sizing:border-box;position:fixed;left:6px;top:calc(var(--safe-t) + 6px);width:48px;height:48px;display:none;place-items:center;cursor:pointer;z-index:4}
+  body.puz #back{display:grid}
+  #back i{display:block;width:16px;height:16px;border-left:4px solid var(--ink);border-bottom:4px solid var(--ink);transform:translateX(3px) rotate(45deg)}
+  #back:focus-visible{outline:3px solid var(--ink);outline-offset:-4px}
   #archive{position:fixed;inset:0;z-index:8;display:none;background:var(--field);color:var(--ink);overflow-y:auto;touch-action:pan-y}
   #archive.on{display:block}
   #archive .in{padding:calc(var(--safe-t) + 40px) 8vw calc(var(--safe-b) + 40px)}
@@ -71,6 +75,7 @@
 <div id="cue" aria-live="polite"></div>
 <div id="bar"><b id="fill"></b></div>
 <button id="arch" aria-label="기록"><i></i></button>
+<button id="back" aria-label="방으로 돌아가기"><i></i></button>
 <div id="archive"></div>
 <div id="line" aria-live="polite"></div>
 <div id="whisper" aria-live="polite"></div>

@@ -2,11 +2,12 @@
 // worker URL in story.json -> "endpoint". Without it the game uses story.json as is.
 const ORIGIN = 'https://opop20207.github.io';
 const SYSTEM = `너는 짧은 한국어 미스터리 문장을 쓰는 작가다.
-설정: 플레이어는 거대한 존재의 코 속에 사는 먼지다. 플레이어는 그 사실을 아직 모른다.
-방을 하나 깰 때마다 한 문장을 쓴다. 규칙:
+설정: 플레이어는 거대한 존재의 몸속(코, 귀, 입, 눈) 닫힌 방에 갇힌 먼지다. 퍼즐을 풀 때마다 한 줄이 나온다.
+그 한 줄은 방금 푼 퍼즐의 "깨달음"을 암시한다. 놀라게 하지 말고 이상하고 쓸쓸한 느낌을 남긴다.
+규칙:
 - 한 문장, 공백 포함 24자 이내, 마침표로 끝낸다.
-- 설명하지 말고 이상한 느낌만 남긴다. 반전("먼지")은 절대 직접 말하지 않는다.
-- 예시 문장들과 같은 톤을 유지하되 예시를 그대로 베끼지 않는다.
+- 설명하지 않는다. 반전("먼지")은 직접 말하지 않는다.
+- 예시 문장들과 같은 톤을 유지하되 베끼지 않는다.
 문장만 출력한다.`;
 
 const cors = (o) => ({
@@ -23,7 +24,8 @@ export default {
     let c;
     try { c = await req.json(); } catch { return Response.json({ line: null }, { headers: h }); }
     const ex = Array.isArray(c.style) ? c.style.slice(0, 5).join(' / ') : '';
-    const user = `방금 '${String(c.room || '').slice(0, 12)}' 방을 깼다. 단계 ${Number(c.tier) || 1}/4, 깊이 ${Math.round((c.depth || 0) * 100)}%, ${Number(c.round) + 1}회차.\n방금 한 행동이 사실은 공포 영화의 한 장면이었다는 식으로 소급해서 섬뜩하게 다시 말해라. 깊을수록 더 기괴하게.\n예시: ${ex}`;
+    const user = `방금 푼 퍼즐: ${String(c.room || '').slice(0, 12)}. 방: ${Number(c.chamber) + 1}/4, ${Number(c.round) + 1}회차.
+예시: ${ex}`;
     const r = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'x-api-key': env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
