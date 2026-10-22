@@ -41,12 +41,14 @@
   #line{position:fixed;inset:0;z-index:6;display:grid;place-items:center;padding:0 8vw;text-align:center;font-size:min(8vw,44px);line-height:1.2;letter-spacing:-.03em;text-wrap:balance;opacity:0;pointer-events:none;transition:opacity .3s var(--ease-out)}
   #line.on{opacity:1;pointer-events:auto}
   #line.low{place-items:end center;padding-bottom:calc(14vh + var(--safe-b))}
+  #whisper{position:fixed;left:0;right:0;bottom:calc(32px + var(--safe-b));text-align:center;z-index:4;pointer-events:none;font-size:min(6.5vw,30px);letter-spacing:-.03em;opacity:0;transform:translateY(8px);transition:opacity .3s var(--ease-out),transform .3s var(--ease-out)}
+  #whisper.on{opacity:1;transform:none}
   canvas{transition:opacity .4s var(--ease-out)}canvas.hide{opacity:0}
   #steps button.sec i::after{content:"";display:block;width:6px;height:6px;margin:3px;background:#ff3b1f}
   #burst{position:fixed;inset:0;pointer-events:none;background:var(--next);clip-path:circle(0 at var(--bx) var(--by));z-index:5}
   #burst.go{animation:burst .45s var(--ease-out) forwards}
   @keyframes burst{to{clip-path:circle(150vmax at var(--bx) var(--by))}}
-  @media(prefers-reduced-motion:reduce){body,#steps i,#bar b,#line,canvas{transition:none}#cue.show{animation:cueR 1.5s linear both}#burst.go{animation:none;opacity:0}}
+  @media(prefers-reduced-motion:reduce){body,#steps i,#bar b,#line,#whisper,canvas{transition:none}#cue.show{animation:cueR 1.5s linear both}#burst.go{animation:none;opacity:0}}
   @keyframes cueR{0%,70%{opacity:1}100%{opacity:0}}
 </style>
 </head>
@@ -57,6 +59,7 @@
 <div id="cue" aria-live="polite"></div>
 <div id="bar"><b id="fill"></b></div>
 <div id="line" aria-live="polite"></div>
+<div id="whisper" aria-live="polite"></div>
 <div id="burst"></div>
 <script>
 const cv=document.getElementById('c'),ctx=cv.getContext('2d'),cue=document.getElementById('cue');
@@ -183,10 +186,10 @@ const sneeze={
 // ===== 6. ENDING : the eye opens. (reached only after all five watchers were found) =====
 const ending={
   cue:'Again',field:['#0a0a0a','#ffffff'],keepCanvas:true,low:true,
-  intro:['에취.','…','아무도 없는 줄 알았지?','먼지는 너였다.'],
+  get intro(){return STORY.endings[Math.min(round,STORY.endings.length-1)]},
   init(){this.t0=performance.now();this.closing=0;this.ready=false;this.done=false;this.p=0;this.px=0;this.py=0},
   after(){this.closing=performance.now();setTimeout(()=>{this.ready=true},1100)},
-  down(){if(this.ready){this.ready=false;resetSecrets();go(0,M.x,M.y)}},
+  down(){if(this.ready){this.ready=false;resetSecrets();round++;try{localStorage.setItem('achoo.round',round)}catch(e){}go(0,M.x,M.y,STORY.intro[Math.min(round,STORY.intro.length-1)])}},
   draw(t){
     const now=performance.now(),cx=W/2,cy=H*.4,rx=W*.42,full=W*.24;
     let open=Math.min(1,(now-this.t0)/1600);if(this.closing)open=Math.max(0,1-(now-this.closing)/900);
@@ -203,11 +206,21 @@ const ending={
 const rooms=[pop,hold,eat,fling,sneeze,ending];
 const PLAY=5;                     // rooms the HUD shows; the ending is the hidden sixth
 // what you read after clearing room i. Short, a little wrong on purpose.
-const AFTER=['거품 속에서 누가 나를 봤다.','점들이 한 곳을 가리켰다.','배 속에서 소리가 났다.','과녁이 눈을 깜빡였다.','뭔가 빠뜨린 것 같다.'];
+const DEFAULT={intro:['코가 간지럽다.'],rounds:[{after:['거품은 누군가의 숨이었다.','점들은 모두 같은 곳을 향했다.','먹을수록 허기가 졌다.','던진 글자가 눈을 떴다.','뭔가 빠뜨린 것 같다.']}],
+  whispers:['들키면','재채기가','나온다','그러니까','숨어라'],endings:[['에취.','…','아무도 없는 줄 알았지?','먼지는 너였다.']],endpoint:null};
+let STORY=DEFAULT,round=0,pending=null;
+async function loadStory(){try{const r=await fetch('story.json',{cache:'no-cache'});if(r.ok)STORY=Object.assign({},DEFAULT,await r.json())}catch(e){}}
+const R=()=>STORY.rounds[Math.min(round,STORY.rounds.length-1)];
+// optional generated line (see worker/). Always races a timeout and falls back to story.json.
+function ai(kind){
+  if(!STORY.endpoint)return null;
+  return fetch(STORY.endpoint,{method:'POST',headers:{'content-type':'application/json'},signal:AbortSignal.timeout(2500),
+    body:JSON.stringify({kind,room:lvl,round,secrets,style:R().after})}).then(r=>r.json()).then(j=>j.line?String(j.line).slice(0,40):null).catch(()=>null);
+}
 let lvl=0,room=pop,busy=false,secrets=[0,0,0,0,0],fresh=true;
 try{lvl=Math.min(PLAY-1,Math.max(0,+localStorage.getItem('achoo.lvl')||0));
   const s=localStorage.getItem('achoo.sec');if(s)secrets=s.split('').map(Number);
-  fresh=!localStorage.getItem('achoo.lvl')}catch(e){}
+  fresh=!localStorage.getItem('achoo.lvl');round=+localStorage.getItem('achoo.round')||0}catch(e){}
 const saveSecrets=()=>{try{localStorage.setItem('achoo.sec',secrets.join(''))}catch(e){}};
 const resetSecrets=()=>{secrets=[0,0,0,0,0];saveSecrets()};
 
@@ -229,6 +242,7 @@ async function typeLine(text,low){
 }
 
 // ---- the watcher: one small eye hides in every room. Never explained. ----
+const rings=[];function ring(x,y,r=46){if(!reduce)rings.push({x,y,r,t:performance.now()})}
 let eye=null,eyeAt=0;
 function armEye(){eye=null;eyeAt=secrets[lvl]||lvl>=PLAY?0:performance.now()+6500}
 function eyeHit(){return eye&&Math.hypot(eye.x-M.x,eye.y-M.y)<30}
@@ -240,11 +254,13 @@ function drawEye(t){
   const a=Math.atan2(M.y-eye.y,M.x-eye.x),d=M.active?3:0;
   ctx.fillStyle=bg;ctx.beginPath();ctx.arc(eye.x+Math.cos(a)*d,eye.y+Math.sin(a)*d,r*.5*blink,0,6.28);ctx.fill();
 }
-function collectEye(){secrets[lvl]=1;saveSecrets();eye=null;hud();blip(160,.4,'sine',.1);buzz([10,40,10])}
+const whisperEl=document.getElementById('whisper');let wt;
+function whisper(s){whisperEl.textContent=s;whisperEl.classList.add('on');clearTimeout(wt);wt=setTimeout(()=>whisperEl.classList.remove('on'),2400)}
+function collectEye(){const at=eye;secrets[lvl]=1;saveSecrets();eye=null;hud();blip(160,.4,'sine',.1);buzz([10,40,10]);ring(at.x,at.y,60);whisper(STORY.whispers[lvl]||'')}
 
 // ---- level flow ----
 function start(i){lvl=i;room=rooms[i];try{if(i<PLAY)localStorage.setItem('achoo.lvl',i)}catch(e){}
-  paint();hud();room.init();armEye();cv.classList.toggle('hide',!room.keepCanvas)}
+  paint();hud();room.init();armEye();pending=i<PLAY?ai('after'):null;cv.classList.toggle('hide',!room.keepCanvas)}
 async function reveal(line){
   const intro=room.intro||(line?[line]:[]);
   for(const s of intro)await typeLine(s,room.low);
@@ -258,11 +274,14 @@ function go(i,x,y,line){
   burst.classList.add('go');setTimeout(()=>start(i),170);
   setTimeout(()=>{burst.classList.remove('go');reveal(line)},480);
 }
-function win(){
-  if(busy)return;jingle();buzz([20,30,20]);
-  const x=M.x>0?M.x:W/2,y=M.y>0?M.y:H/2;
-  if(lvl===PLAY-1)return secrets.every(Boolean)?go(PLAY,x,y):go(0,x,y,AFTER[lvl]);
-  go(lvl+1,x,y,AFTER[lvl]);
+async function win(){
+  if(busy)return;busy=true;jingle();buzz([20,30,20]);
+  const x=M.x>0?M.x:W/2,y=M.y>0?M.y:H/2,fixed=R().after[lvl];
+  const last=lvl===PLAY-1,all=secrets.every(Boolean);
+  const gen=last&&all?null:await Promise.race([pending,wait(400)]);   // generated line if it's ready, else story.json
+  busy=false;
+  if(last&&all)return go(PLAY,x,y);
+  go(last?0:lvl+1,x,y,gen||fixed);
 }
 
 // ---- input ----
@@ -270,7 +289,7 @@ function pt(e){const nx=e.clientX,ny=e.clientY;M.vx=nx-M.x;M.vy=ny-M.y;M.sx=M.sx
 cv.addEventListener('pointermove',e=>{if(busy)return;if(!M.active&&e.pointerType==='touch')return;pt(e);M.active=true;room.move&&room.move(e)});
 cv.addEventListener('pointerdown',e=>{if(busy)return;try{cv.setPointerCapture(e.pointerId)}catch(_){}
   if(AC&&AC.state==='suspended')AC.resume();M.x=e.clientX;M.y=e.clientY;
-  if(eyeHit()){collectEye();return}
+  ring(M.x,M.y);if(eyeHit()){collectEye();return}
   M.sx=M.sy=0;M.down=true;M.active=true;room.down&&room.down(e)});
 const release=e=>{if(!M.down)return;M.down=false;if(e.pointerType==='touch')M.active=false;room.up&&room.up(e)};
 cv.addEventListener('pointerup',release);cv.addEventListener('pointercancel',release);
@@ -281,10 +300,12 @@ function resize(){W=innerWidth;H=innerHeight;cv.width=W*DPR;cv.height=H*DPR;ctx.
 addEventListener('resize',resize);
 resize();room=rooms[lvl];room.init();paint();hud();
 busy=true;
-(async()=>{if(fresh&&lvl===0){cv.classList.add('hide');await typeLine('코가 간지럽다.');cv.classList.remove('hide')}showCue();busy=false;armEye()})();
+(async()=>{await loadStory();if(fresh&&lvl===0){cv.classList.add('hide');await typeLine(STORY.intro[0]);cv.classList.remove('hide')}showCue();busy=false;armEye();pending=ai('after')})();
 let shown=0;
 function loop(t){
   ctx.clearRect(0,0,W,H);room.draw(t);drawEye(t);
+  for(let i=rings.length-1;i>=0;i--){const g=rings[i],k=(performance.now()-g.t)/380;if(k>=1){rings.splice(i,1);continue}
+    ctx.globalAlpha=1-k;ctx.strokeStyle=room.field[1];ctx.lineWidth=3;ctx.beginPath();ctx.arc(g.x,g.y,g.r*(1-Math.pow(1-k,3)),0,6.28);ctx.stroke();ctx.globalAlpha=1}
   shown+=((room.p||0)-shown)*.2;fill.style.transform='scaleX('+Math.min(1,shown).toFixed(3)+')';
   if(room.done&&!busy){room.done=false;shown=0;win()}
   requestAnimationFrame(loop);
