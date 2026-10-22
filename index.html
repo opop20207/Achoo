@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Achoo</title>
+<meta name="description" content="Achoo: 킬링타임용 예쁜 쓰레기. 거품, 자석, 슬라임, 글자 장난감 네 칸.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chivo:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  /* tokens: direction "colour-chapters", palette "Blue, red, black" (draw.mjs) */
+  :root{
+    --paper:#ffffff;--ink:#0a0a0a;
+    --field:#2436ff;--field-ink:#ffffff;       /* swapped per room */
+    --step-small:clamp(.8125rem,.79rem + .1vw,.875rem);
+    --step-body:clamp(1.0625rem,1rem + .25vw,1.1875rem);
+    --step-head:clamp(4.5rem,2rem + 17vw,16rem);
+    --margin:clamp(16px,2.2vw,28px);
+    --ease-out:cubic-bezier(0,0,.2,1);         /* enter: ease-out (omd-feel) */
+    --
+  }
+  *{box-sizing:border-box;margin:0}
+  html,body{height:100%;overflow:hidden;overscroll-behavior:contain}
+  body{background:var(--field);color:var(--field-ink);font-family:'Chivo',system-ui,sans-serif;font-size:var(--step-body);line-height:1.35;letter-spacing:-.01em;-webkit-font-smoothing:antialiased;transition:background-color .3s var(--ease-out),color .3s var(--ease-out)}
+  canvas{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
+  header{position:fixed;z-index:2;top:var(--margin);left:var(--margin);right:var(--margin);pointer-events:none}
+  h1{font-weight:900;font-size:var(--step-head);line-height:.88;letter-spacing:-.05em;text-transform:uppercase}
+  #lede{margin-top:clamp(12px,1.6vw,22px);font-weight:700;font-size:var(--step-lead,1.25rem)}#hint{margin-top:6px;max-width:34ch;text-wrap:pretty;font-size:var(--step-body)}
+  nav{position:fixed;left:var(--margin);right:var(--margin);bottom:var(--margin);display:flex;gap:8px}
+  nav button{all:unset;box-sizing:border-box;cursor:pointer;flex:1 1 0;min-height:48px;padding:0 16px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:var(--step-small);text-transform:uppercase;letter-spacing:.06em;background:transparent;color:inherit;outline:2px solid currentColor;outline-offset:-2px;transition:background-color .15s var(--ease-out),color .15s var(--ease-out),transform .15s var(--ease-out)}
+  nav button:active{transform:scale(.97)}
+  nav button[aria-pressed=true]{background:var(--field-ink);color:var(--field);outline-color:var(--field-ink)}
+  nav button:focus-visible{outline:3px solid var(--field-ink);outline-offset:3px}
+  @media(hover:hover){nav button:not([aria-pressed=true]):hover{background:color-mix(in srgb,var(--field-ink) 18%,transparent)}}
+  /* the sneeze: a flat colour burst that carries you to the next room */
+  #burst{position:fixed;inset:0;pointer-events:none;background:var(--next);clip-path:circle(0 at var(--bx) var(--by));z-index:5}
+  #burst.go{animation:burst .42s var(--ease-out) forwards}
+  @keyframes burst{to{clip-path:circle(150vmax at var(--bx) var(--by))}}
+  @media(max-width:640px){nav button{padding:0 4px;letter-spacing:.02em}}
+  @media(prefers-reduced-motion:reduce){body{transition:none}#burst.go{animation:none;clip-path:none;opacity:0}nav button{transition:none}}
+</style>
+</head>
+<body>
+<canvas id="c" aria-label="장난감 캔버스"></canvas>
+<header><h1>Achoo</h1><p id="lede">킬링타임용 예쁜 쓰레기. 네 칸짜리 장난감 방입니다.</p><p id="hint"></p></header>
+<nav id="nav" aria-label="방 고르기"></nav>
+<div id="burst"></div>
+<script>
+const cv=document.getElementById('c'),ctx=cv.getContext('2d'),hint=document.getElementById('hint');
+const burst=document.getElementById('burst'),root=document.documentElement;
+const reduce=matchMedia('(prefers-reduced-motion:reduce)').matches;
+let W,H,DPR=Math.min(devicePixelRatio||1,2);
+const M={x:innerWidth/2,y:innerHeight/2,vx:0,vy:0,down:false};
+const rnd=(a,b)=>a+Math.random()*(b-a),pick=a=>a[(Math.random()*a.length)|0];
+
+let AC;
+function blip(f=400,d=.12,type='sine',v=.12){
+  try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();
+  const o=AC.createOscillator(),g=AC.createGain();o.type=type;o.frequency.setValueAtTime(f,AC.currentTime);
+  o.frequency.exponentialRampToValueAtTime(f*1.8,AC.currentTime+d);
+  g.gain.setValueAtTime(v,AC.currentTime);g.gain.exponentialRampToValueAtTime(.001,AC.currentTime+d);
+  o.connect(g).connect(AC.destination);o.start();o.stop(AC.currentTime+d)}catch(e){}
+}
+
+// field colours per room (flat, no gradients). ink = text/draw colour on that field
+const F={blue:['#2436ff','#ffffff'],red:['#ff3b1f','#0a0a0a'],black:['#0a0a0a','#ffffff'],navy:['#050a5c','#ffffff']};
+
+function resize(){W=innerWidth;H=innerHeight;cv.width=W*DPR;cv.height=H*DPR;ctx.setTransform(DPR,0,0,DPR,0,0);room&&room.init&&room.init()}
+function pt(e){M.vx=e.clientX-M.x;M.vy=e.clientY-M.y;M.x=e.clientX;M.y=e.clientY}
+cv.addEventListener('pointermove',e=>{pt(e)});
+cv.addEventListener('pointerdown',e=>{pt(e);M.down=true;cv.setPointerCapture(e.pointerId);room.down&&room.down(e)});
+const release=e=>{M.down=false;room.up&&room.up(e)};
+cv.addEventListener('pointerup',release);cv.addEventListener('pointercancel',release);
+
+// ===== 1. 거품 (blue) =====
+const bubbles={
+  name:'거품',field:F.blue,hint:'거품을 눌러 터뜨리세요. 빈 곳을 누르면 새 거품이 올라옵니다.',
+  list:[],parts:[],
+  init(){this.list=[];this.parts=[];for(let i=0;i<26;i++)this.spawn()},
+  spawn(x,y){this.list.push({x:x??rnd(0,W),y:y??rnd(H*.3,H+60),r:rnd(18,64),vy:rnd(-.6,-.15),ph:rnd(0,6.28),c:pick(['#ffffff','#ff3b1f','#0a0a0a'])})},
+  down(e){const hit=this.list.find(b=>Math.hypot(b.x-e.clientX,b.y-e.clientY)<b.r);
+    if(hit)this.pop(hit);else for(let i=0;i<3;i++)this.spawn(e.clientX+rnd(-30,30),e.clientY+rnd(-30,30))},
+  pop(b){this.list.splice(this.list.indexOf(b),1);blip(900-b.r*7,.15,'triangle');
+    for(let i=0;i<14;i++){const a=rnd(0,6.28),s=rnd(1,5);this.parts.push({x:b.x,y:b.y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,l:1,c:b.c})}
+    setTimeout(()=>this.spawn(rnd(0,W),H+80),600)},
+  draw(t){
+    for(const b of this.list){
+      if(!reduce){b.y+=b.vy;b.x+=Math.sin(t/900+b.ph)*.4}
+      const d=Math.hypot(b.x-M.x,b.y-M.y);if(d<b.r+40){b.x+=(b.x-M.x)/d*1.6;b.y+=(b.y-M.y)/d*1.6}
+      if(b.y<-b.r*2)b.y=H+b.r*2;
+      const wob=reduce?1:1+Math.sin(t/300+b.ph)*.05;
+      ctx.fillStyle=b.c;ctx.beginPath();ctx.ellipse(b.x,b.y,b.r*wob,b.r/wob,0,0,6.28);ctx.fill();
+      ctx.fillStyle=b.c==='#ffffff'?'#2436ff':'#ffffff';ctx.globalAlpha=.9;
+      ctx.beginPath();ctx.arc(b.x-b.r*.38,b.y-b.r*.4,b.r*.13,0,6.28);ctx.fill();ctx.globalAlpha=1;
+    }
+    for(let i=this.parts.length-1;i>=0;i--){const p=this.parts[i];p.x+=p.vx;p.y+=p.vy;p.vy+=.1;p.l-=.025;
+      if(p.l<=0){this.parts.splice(i,1);continue}
+      ctx.fillStyle=p.c;ctx.beginPath();ctx.arc(p.x,p.y,3*p.l+1.5,0,6.28);ctx.fill()}
+  }
+};
+
+// ===== 2. 자석 (red) =====
+const dots={
+  name:'자석',field:F.red,hint:'점들은 마우스를 피합니다. 누르고 있으면 빨려듭니다.',
+  list:[],
+  init(){this.list=[];const gap=W<640?24:28;for(let x=gap/2;x<W;x+=gap)for(let y=gap/2;y<H;y+=gap)this.list.push({hx:x,hy:y,x,y,vx:0,vy:0})},
+  draw(){
+    for(const p of this.list){
+      const dx=p.x-M.x,dy=p.y-M.y,d=Math.hypot(dx,dy)+.001,R=170;
+      if(d<R){const f=(1-d/R)*(M.down?-2.2:1.6);p.vx+=dx/d*f;p.vy+=dy/d*f}
+      p.vx+=(p.hx-p.x)*.05;p.vy+=(p.hy-p.y)*.05;p.vx*=.86;p.vy*=.86;p.x+=p.vx;p.y+=p.vy;
+      const s=Math.hypot(p.vx,p.vy);
+      ctx.fillStyle=s>1.2?'#ffffff':'#0a0a0a';
+      ctx.beginPath();ctx.arc(p.x,p.y,2+Math.min(s*.7,5),0,6.28);ctx.fill();
+    }
+  }
+};
+
+// ===== 3. 슬라임 (black) =====
+const slime={
+  name:'슬라임',field:F.black,hint:'천천히, 빠르게, 마구 흔들어 보세요. 꼬리가 늦게 따라옵니다.',
+  seg:[],cols:['#2436ff','#ff3b1f','#ffffff'],
+  init(){this.seg=Array.from({length:34},()=>({x:W/2,y:H/2}))},
+  draw(t){
+    let px=M.x,py=M.y;
+    this.seg.forEach((s,i)=>{s.x+=(px-s.x)*(.34-i*.006);s.y+=(py-s.y)*(.34-i*.006);px=s.x;py=s.y});
+    for(let i=this.seg.length-1;i>=0;i--){
+      const s=this.seg[i],r=5+(this.seg.length-i)*1.2+(reduce?0:Math.sin(t/200+i)*2);
+      ctx.fillStyle=this.cols[i%3];ctx.beginPath();ctx.arc(s.x,s.y,r,0,6.28);ctx.fill();
+    }
+  }
+};
+
+// ===== 4. 글자 (navy) =====
+const letters={
+  name:'글자',field:F.navy,hint:'글자를 잡아 던지세요. 빈 곳을 누르면 글자가 쏟아집니다.',
+  list:[],drag:null,cols:['#ffffff','#ff3b1f','#2436ff'],
+  words:'ACHOO아츄에취재채기킬링타임뭐하지!?',
+  init(){this.list=[];this.drag=null;[...'ACHOO'].forEach(ch=>this.add(ch,rnd(W*.25,W*.75),rnd(-300,0)))},
+  add(ch,x,y){this.list.push({ch,x,y,vx:rnd(-3,3),vy:0,s:rnd(56,110),rot:rnd(-1,1),vr:rnd(-.05,.05),c:pick(this.cols)})},
+  down(e){const p=[...this.list].reverse().find(l=>Math.hypot(l.x-e.clientX,l.y-e.clientY)<l.s*.6);
+    if(p){this.drag=p;blip(300,.08,'square',.06)}
+    else for(let i=0;i<6;i++)this.add(pick([...this.words]),e.clientX+rnd(-60,60),e.clientY-40)},
+  up(){if(this.drag){this.drag.vx=M.vx*.8;this.drag.vy=M.vy*.8;this.drag=null}},
+  draw(){
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    for(const l of this.list){
+      if(l===this.drag){l.x+=(M.x-l.x)*.5;l.y+=(M.y-l.y)*.5;l.vx=l.vy=0;l.rot*=.9}
+      else{l.vy+=.5;l.x+=l.vx;l.y+=l.vy;l.rot+=l.vr;
+        const fl=H-l.s*.5-70;
+        if(l.y>fl){l.y=fl;if(Math.abs(l.vy)>4)blip(120+l.s*2,.07,'sine',.05);l.vy*=-.55;l.vx*=.9;l.vr*=.8}
+        if(l.x<l.s/2||l.x>W-l.s/2){l.x=Math.max(l.s/2,Math.min(W-l.s/2,l.x));l.vx*=-.7}}
+      ctx.save();ctx.translate(l.x,l.y);ctx.rotate(l.rot);
+      ctx.font=`900 ${l.s}px Chivo,system-ui,sans-serif`;ctx.fillStyle=l.c;ctx.fillText(l.ch,0,0);ctx.restore();
+    }
+    if(this.list.length>120)this.list.splice(0,this.list.length-120);
+  }
+};
+
+const rooms=[bubbles,dots,slime,letters];
+let room=bubbles,busy=false;
+const nav=document.getElementById('nav');
+
+function paint(r){
+  root.style.setProperty('--field',r.field[0]);root.style.setProperty('--field-ink',r.field[1]);
+  hint.textContent=r.hint;
+}
+function enter(r,btn,ev){
+  if(busy||r===room&&ev)return;
+  [...nav.children].forEach(b=>b.setAttribute('aria-pressed',b===btn));
+  const go=()=>{room=r;paint(r);r.init&&r.init()};
+  if(!ev||reduce){go();return}
+  busy=true;
+  const bb=btn.getBoundingClientRect();
+  burst.style.setProperty('--next',r.field[0]);
+  burst.style.setProperty('--bx',(bb.left+bb.width/2)+'px');burst.style.setProperty('--by',(bb.top+bb.height/2)+'px');
+  burst.classList.add('go');
+  setTimeout(go,150);
+  burst.addEventListener('animationend',()=>{burst.classList.remove('go');busy=false},{once:true});
+}
+rooms.forEach(r=>{const b=document.createElement('button');b.textContent=r.name;b.setAttribute('aria-pressed','false');
+  b.onclick=e=>enter(r,b,e);nav.appendChild(b)});
+addEventListener('resize',resize);
+resize();
+enter(bubbles,nav.children[0],null);
+document.fonts&&document.fonts.ready.then(()=>{});
+
+function loop(t){
+  ctx.clearRect(0,0,W,H);          // flat field shows through from <body>
+  room.draw(t);
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
