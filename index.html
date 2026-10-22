@@ -38,10 +38,15 @@
   #cue{position:fixed;inset:0;display:grid;place-items:center;pointer-events:none;z-index:2;font-size:min(19vw,150px);letter-spacing:-.05em;text-transform:uppercase;line-height:.88;opacity:0}
   #cue.show{animation:cue 1.5s var(--ease-out) both}
   @keyframes cue{0%{opacity:0;transform:scale(.86)}16%{opacity:1;transform:scale(1)}72%{opacity:1}100%{opacity:0}}
+  #line{position:fixed;inset:0;z-index:6;display:grid;place-items:center;padding:0 8vw;text-align:center;font-size:min(8vw,44px);line-height:1.2;letter-spacing:-.03em;text-wrap:balance;opacity:0;pointer-events:none;transition:opacity .3s var(--ease-out)}
+  #line.on{opacity:1;pointer-events:auto}
+  #line.low{place-items:end center;padding-bottom:calc(14vh + var(--safe-b))}
+  canvas{transition:opacity .4s var(--ease-out)}canvas.hide{opacity:0}
+  #steps button.sec i::after{content:"";display:block;width:6px;height:6px;margin:3px;background:#ff3b1f}
   #burst{position:fixed;inset:0;pointer-events:none;background:var(--next);clip-path:circle(0 at var(--bx) var(--by));z-index:5}
   #burst.go{animation:burst .45s var(--ease-out) forwards}
   @keyframes burst{to{clip-path:circle(150vmax at var(--bx) var(--by))}}
-  @media(prefers-reduced-motion:reduce){body,#steps i,#bar b{transition:none}#cue.show{animation:cueR 1.5s linear both}#burst.go{animation:none;opacity:0}}
+  @media(prefers-reduced-motion:reduce){body,#steps i,#bar b,#line,canvas{transition:none}#cue.show{animation:cueR 1.5s linear both}#burst.go{animation:none;opacity:0}}
   @keyframes cueR{0%,70%{opacity:1}100%{opacity:0}}
 </style>
 </head>
@@ -51,6 +56,7 @@
 <div id="steps" role="group" aria-label="방"></div>
 <div id="cue" aria-live="polite"></div>
 <div id="bar"><b id="fill"></b></div>
+<div id="line" aria-live="polite"></div>
 <div id="burst"></div>
 <script>
 const cv=document.getElementById('c'),ctx=cv.getContext('2d'),cue=document.getElementById('cue');
@@ -174,33 +180,98 @@ const sneeze={
     ctx.restore();this.fx.draw(.18)}
 };
 
-const rooms=[pop,hold,eat,fling,sneeze];
-let lvl=0,room=pop,busy=false;
-try{lvl=Math.min(rooms.length-1,Math.max(0,+localStorage.getItem('achoo.lvl')||0))}catch(e){}
+// ===== 6. ENDING : the eye opens. (reached only after all five watchers were found) =====
+const ending={
+  cue:'Again',field:['#0a0a0a','#ffffff'],keepCanvas:true,low:true,
+  intro:['에취.','…','아무도 없는 줄 알았지?','먼지는 너였다.'],
+  init(){this.t0=performance.now();this.closing=0;this.ready=false;this.done=false;this.p=0;this.px=0;this.py=0},
+  after(){this.closing=performance.now();setTimeout(()=>{this.ready=true},1100)},
+  down(){if(this.ready){this.ready=false;resetSecrets();go(0,M.x,M.y)}},
+  draw(t){
+    const now=performance.now(),cx=W/2,cy=H*.4,rx=W*.42,full=W*.24;
+    let open=Math.min(1,(now-this.t0)/1600);if(this.closing)open=Math.max(0,1-(now-this.closing)/900);
+    const ry=Math.max(1,full*open*(reduce?1:1-.04*Math.sin(t/700)));
+    ctx.fillStyle='#ffffff';ctx.beginPath();ctx.ellipse(cx,cy,rx,ry,0,0,6.28);ctx.fill();
+    const tx=M.active||M.down?M.x:cx,ty=M.active||M.down?M.y:cy;
+    this.px+=((tx-cx)*.12-this.px)*.15;this.py+=((ty-cy)*.12-this.py)*.15;
+    const lim=Math.min(rx*.35,Math.abs(this.px)),ix=cx+Math.sign(this.px)*lim,iy=cy+Math.max(-ry*.4,Math.min(ry*.4,this.py));
+    ctx.save();ctx.beginPath();ctx.ellipse(cx,cy,rx,ry,0,0,6.28);ctx.clip();
+    ctx.fillStyle='#ff3b1f';ctx.beginPath();ctx.arc(ix,iy,full*.62,0,6.28);ctx.fill();
+    ctx.fillStyle='#0a0a0a';ctx.beginPath();ctx.arc(ix,iy,full*.28,0,6.28);ctx.fill();ctx.restore()}
+};
+
+const rooms=[pop,hold,eat,fling,sneeze,ending];
+const PLAY=5;                     // rooms the HUD shows; the ending is the hidden sixth
+// what you read after clearing room i. Short, a little wrong on purpose.
+const AFTER=['거품 속에서 누가 나를 봤다.','점들이 한 곳을 가리켰다.','배 속에서 소리가 났다.','과녁이 눈을 깜빡였다.','뭔가 빠뜨린 것 같다.'];
+let lvl=0,room=pop,busy=false,secrets=[0,0,0,0,0],fresh=true;
+try{lvl=Math.min(PLAY-1,Math.max(0,+localStorage.getItem('achoo.lvl')||0));
+  const s=localStorage.getItem('achoo.sec');if(s)secrets=s.split('').map(Number);
+  fresh=!localStorage.getItem('achoo.lvl')}catch(e){}
+const saveSecrets=()=>{try{localStorage.setItem('achoo.sec',secrets.join(''))}catch(e){}};
+const resetSecrets=()=>{secrets=[0,0,0,0,0];saveSecrets()};
 
 // ---- HUD ----
-rooms.forEach((r,i)=>{const b=document.createElement('button');b.setAttribute('aria-label','방 '+(i+1));b.innerHTML='<i></i>';b.onclick=e=>go(i,e.clientX,e.clientY);steps.appendChild(b)});
-function hud(){[...steps.children].forEach((b,i)=>{b.classList.toggle('done',i<lvl);b.classList.toggle('now',i===lvl)})}
+rooms.slice(0,PLAY).forEach((r,i)=>{const b=document.createElement('button');b.setAttribute('aria-label','방 '+(i+1));b.innerHTML='<i></i>';b.onclick=e=>go(i,e.clientX,e.clientY);steps.appendChild(b)});
+function hud(){[...steps.children].forEach((b,i)=>{b.classList.toggle('done',i<lvl);b.classList.toggle('now',i===lvl);b.classList.toggle('sec',!!secrets[i])})}
 function showCue(){cue.textContent=room.cue;cue.classList.remove('show');void cue.offsetWidth;cue.classList.add('show')}
 function paint(){root.style.setProperty('--field',room.field[0]);root.style.setProperty('--ink',room.field[1]);themeMeta.content=room.field[0]}
-function start(i){lvl=i;room=rooms[i];try{localStorage.setItem('achoo.lvl',i)}catch(e){}paint();hud();room.init();showCue()}
-function go(i,x,y){
-  if(busy)return;busy=true;const nx=rooms[i];
-  if(reduce){start(i);busy=false;return}
-  burst.style.setProperty('--next',nx.field[0]);burst.style.setProperty('--bx',x+'px');burst.style.setProperty('--by',y+'px');
+
+// ---- story lines: typed one character at a time, tap to skip the wait ----
+const lineEl=document.getElementById('line');
+const wait=ms=>new Promise(r=>setTimeout(r,ms));
+async function typeLine(text,low){
+  lineEl.className=low?'low':'';lineEl.textContent='';lineEl.classList.add('on');
+  let skip=false;const sk=()=>{skip=true};lineEl.addEventListener('pointerdown',sk);
+  if(reduce)lineEl.textContent=text;else for(const ch of text){lineEl.textContent+=ch;if(ch!==' ')blip(1200+Math.random()*200,.03,'square',.015);await wait(55)}
+  for(let i=0;i<(reduce?30:24)&&!skip;i++)await wait(60);
+  lineEl.removeEventListener('pointerdown',sk);lineEl.classList.remove('on');await wait(320);
+}
+
+// ---- the watcher: one small eye hides in every room. Never explained. ----
+let eye=null,eyeAt=0;
+function armEye(){eye=null;eyeAt=secrets[lvl]||lvl>=PLAY?0:performance.now()+6500}
+function eyeHit(){return eye&&Math.hypot(eye.x-M.x,eye.y-M.y)<30}
+function drawEye(t){
+  if(!eye){if(eyeAt&&performance.now()>eyeAt&&!busy){eye={x:rnd(30,W-30),y:rnd(90,H-70),ph:rnd(0,6.28),born:performance.now()};eyeAt=0}return}
+  const k=Math.min(1,(performance.now()-eye.born)/1200),r=9*k;eye.x+=Math.sin(t/1900+eye.ph)*.18;eye.y+=Math.cos(t/2300+eye.ph)*.14;
+  const blink=(t%3200)<140?.15:1,ink=room.field[1],bg=room.field[0];
+  ctx.fillStyle=ink;ctx.beginPath();ctx.ellipse(eye.x,eye.y,r*1.5,r*blink,0,0,6.28);ctx.fill();
+  const a=Math.atan2(M.y-eye.y,M.x-eye.x),d=M.active?3:0;
+  ctx.fillStyle=bg;ctx.beginPath();ctx.arc(eye.x+Math.cos(a)*d,eye.y+Math.sin(a)*d,r*.5*blink,0,6.28);ctx.fill();
+}
+function collectEye(){secrets[lvl]=1;saveSecrets();eye=null;hud();blip(160,.4,'sine',.1);buzz([10,40,10])}
+
+// ---- level flow ----
+function start(i){lvl=i;room=rooms[i];try{if(i<PLAY)localStorage.setItem('achoo.lvl',i)}catch(e){}
+  paint();hud();room.init();armEye();cv.classList.toggle('hide',!room.keepCanvas)}
+async function reveal(line){
+  const intro=room.intro||(line?[line]:[]);
+  for(const s of intro)await typeLine(s,room.low);
+  cv.classList.remove('hide');if(room.after)room.after();else showCue();
+  if(eyeAt)eyeAt=performance.now()+6500;busy=false;
+}
+function go(i,x,y,line){
+  if(busy)return;busy=true;
+  if(reduce){start(i);reveal(line);return}
+  burst.style.setProperty('--next',rooms[i].field[0]);burst.style.setProperty('--bx',x+'px');burst.style.setProperty('--by',y+'px');
   burst.classList.add('go');setTimeout(()=>start(i),170);
-  setTimeout(()=>{burst.classList.remove('go');busy=false},480);
+  setTimeout(()=>{burst.classList.remove('go');reveal(line)},480);
 }
 function win(){
   if(busy)return;jingle();buzz([20,30,20]);
-  go((lvl+1)%rooms.length,M.x>0?M.x:W/2,M.y>0?M.y:H/2);
+  const x=M.x>0?M.x:W/2,y=M.y>0?M.y:H/2;
+  if(lvl===PLAY-1)return secrets.every(Boolean)?go(PLAY,x,y):go(0,x,y,AFTER[lvl]);
+  go(lvl+1,x,y,AFTER[lvl]);
 }
 
 // ---- input ----
 function pt(e){const nx=e.clientX,ny=e.clientY;M.vx=nx-M.x;M.vy=ny-M.y;M.sx=M.sx*.6+M.vx*.4;M.sy=M.sy*.6+M.vy*.4;M.x=nx;M.y=ny}
 cv.addEventListener('pointermove',e=>{if(busy)return;if(!M.active&&e.pointerType==='touch')return;pt(e);M.active=true;room.move&&room.move(e)});
 cv.addEventListener('pointerdown',e=>{if(busy)return;try{cv.setPointerCapture(e.pointerId)}catch(_){}
-  if(AC&&AC.state==='suspended')AC.resume();M.x=e.clientX;M.y=e.clientY;M.sx=M.sy=0;M.down=true;M.active=true;room.down&&room.down(e)});
+  if(AC&&AC.state==='suspended')AC.resume();M.x=e.clientX;M.y=e.clientY;
+  if(eyeHit()){collectEye();return}
+  M.sx=M.sy=0;M.down=true;M.active=true;room.down&&room.down(e)});
 const release=e=>{if(!M.down)return;M.down=false;if(e.pointerType==='touch')M.active=false;room.up&&room.up(e)};
 cv.addEventListener('pointerup',release);cv.addEventListener('pointercancel',release);
 document.addEventListener('gesturestart',e=>e.preventDefault());
@@ -208,10 +279,12 @@ document.addEventListener('contextmenu',e=>e.preventDefault());
 
 function resize(){W=innerWidth;H=innerHeight;cv.width=W*DPR;cv.height=H*DPR;ctx.setTransform(DPR,0,0,DPR,0,0);room&&room.init&&room.init()}
 addEventListener('resize',resize);
-resize();paint();hud();showCue();
+resize();room=rooms[lvl];room.init();paint();hud();
+busy=true;
+(async()=>{if(fresh&&lvl===0){cv.classList.add('hide');await typeLine('코가 간지럽다.');cv.classList.remove('hide')}showCue();busy=false;armEye()})();
 let shown=0;
 function loop(t){
-  ctx.clearRect(0,0,W,H);room.draw(t);
+  ctx.clearRect(0,0,W,H);room.draw(t);drawEye(t);
   shown+=((room.p||0)-shown)*.2;fill.style.transform='scaleX('+Math.min(1,shown).toFixed(3)+')';
   if(room.done&&!busy){room.done=false;shown=0;win()}
   requestAnimationFrame(loop);
