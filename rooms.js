@@ -79,7 +79,7 @@ reg({id:'lantern',tier:'puz',
   }
 });
 // gaze: four portraits. Tap one and it turns. What should they be looking at?
-reg({id:'gaze',tier:'puz',
+reg({id:'gaze',tier:'puz',pin:'arrows',
   init(){this.d=run.arrows.map(t=>(t+1+((Math.random()*3)|0))%4);this.cur=this.d.map(v=>v*Math.PI/2);this.done=false;this.p=0;this.fin=0;this.r=Math.min(W*.058,26);
     this.ex=[0,1,2,3].map(i=>({x:W*(.15+.233*i),y:H*.45}))},
   down(){let b=-1,bd=this.r*2.4;this.ex.forEach((e,i)=>{const d=Math.hypot(e.x-M.x,e.y-M.y);if(d<bd){bd=d;b=i}});
@@ -116,7 +116,7 @@ reg({id:'tear',tier:'puz',
 
 // ================= FLOOR 2 · ward corridor =================
 // clock: the hands move. When did it stop? (the photograph from downstairs says)
-reg({id:'clock',tier:'puz',
+reg({id:'clock',tier:'puz',pin:'photo',
   init(){this.cx=W/2;this.cy=H*.42;this.R=Math.min(W*.38,170);this.hh=rnd(0,6.28);this.mh=rnd(0,6.28);this.drag=null;this.hold=0;this.fin=0;this.done=false;this.p=0},
   ang(){return Math.atan2(M.x-this.cx,-(M.y-this.cy))},
   tip(a,k){return [this.cx+Math.sin(a)*this.R*k,this.cy-Math.cos(a)*this.R*k]},
@@ -169,7 +169,7 @@ reg({id:'pulse',tier:'puz',
 
 // ================= FLOOR 3 · basement records =================
 // simon: four coloured buttons that flash at random. The order that matters is the one from the fuse box.
-reg({id:'simon',tier:'puz',
+reg({id:'simon',tier:'puz',pin:'colors',
   init(){this.pads=[0,1,2,3].map(i=>({x:W*(.28+.44*(i%2)),y:H*(.34+.2*((i/2)|0)),c:i,lit:0}));this.seq=run.colors.slice();this.step=0;this.demoAt=performance.now()+1500;this.done=false;this.p=0;this.fin=0},
   flash(p){p.lit=1;blip(240+p.c*110,.18,'triangle',.1)},
   down(){const p=this.pads.find(p=>Math.hypot(p.x-M.x,p.y-M.y)<W*.17);if(!p||this.fin)return;this.flash(p);buzz(8);this.demoAt=performance.now()+4000;
@@ -199,7 +199,7 @@ reg({id:'wipe',tier:'puz',
     ctx.strokeStyle=f[1];ctx.lineWidth=6;ctx.strokeRect(this.mx,this.my,this.mw,this.mh)}
 });
 // dial: a safe with three wheels. Swipe a wheel up or down.
-reg({id:'dial',tier:'puz',
+reg({id:'dial',tier:'puz',pin:'digits',
   init(){do{this.v=[0,0,0].map(()=>1+((Math.random()*6)|0))}while(this.v.every((x,i)=>x===run.digits[i]));
     this.ws=[0,1,2].map(i=>({x:W*(.1+.29*i),y:H*.34,w:W*.26,h:H*.3}));this.drag=-1;this.ay=0;this.done=false;this.p=0;this.fin=0},
   down(){this.drag=this.ws.findIndex(w=>inRect(w,M.x,M.y));this.ay=M.y},
