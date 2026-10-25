@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>Achoo</title>
-<meta name="description" content="Achoo: 킬링타임용 예쁜 쓰레기. 동글동글 친구들과 손가락 하나로 노는 장난감 상자.">
-<meta name="theme-color" content="#ffd6e8">
+<meta name="description" content="Achoo: 톡톡 깨고, 터뜨리고, 말랑말랑. 귀여운 친구들을 모으는 킬링타임 장난감.">
+<meta name="theme-color" content="#ffe3f0">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -14,48 +14,48 @@
 <link rel="apple-touch-icon" href="icon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Chivo:wght@900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&display=swap" rel="stylesheet">
 <style>
   :root{
-    --field:#ffd6e8;--ink:#4a2b5a;
+    --bg1:#ffe3f0;--bg2:#e6dcff;--ink:#6a4a62;--pink:#ff8fb3;
     --safe-t:env(safe-area-inset-top,0px);--safe-b:env(safe-area-inset-bottom,0px);
-    --ease-out:cubic-bezier(0,0,.2,1);   /* enter / user-triggered (omd-feel) */
+    --ease-out:cubic-bezier(0,0,.2,1);
   }
   *{box-sizing:border-box;margin:0;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
-  html,body{height:100%;overflow:hidden;overscroll-behavior:none;background:var(--field)}
-  body{color:var(--ink);font-family:'Chivo',system-ui,sans-serif;font-weight:900;-webkit-font-smoothing:antialiased;transition:background-color .3s var(--ease-out)}
+  html,body{height:100%;overflow:hidden;overscroll-behavior:none}
+  body{background:linear-gradient(180deg,var(--bg1),var(--bg2));color:var(--ink);font-family:'Fredoka',system-ui,sans-serif;font-weight:600;-webkit-font-smoothing:antialiased}
   canvas{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
-  #steps{position:fixed;top:calc(var(--safe-t) + 14px);left:0;right:0;display:flex;justify-content:center;gap:7px;z-index:3;pointer-events:none}
-  #steps i{display:block;width:12px;height:12px;border-radius:50%;outline:2px solid var(--ink);outline-offset:-2px;transition:background-color .2s var(--ease-out),transform .2s var(--ease-out)}
-  #steps i.done{background:var(--ink)}
-  #steps i.now{background:var(--ink);transform:scale(1.5)}
-  #bar{position:fixed;left:0;right:0;bottom:0;height:calc(12px + var(--safe-b));padding-bottom:var(--safe-b);z-index:3;pointer-events:none}
-  #bar b{display:block;height:12px;border-radius:0 6px 6px 0;background:var(--ink);transform-origin:left;transform:scaleX(0);transition:transform .2s var(--ease-out)}
-  #title{position:fixed;left:0;right:0;top:calc(var(--safe-t) + 7vh);z-index:2;display:none;pointer-events:none;text-align:center}
-  #title h1{font-size:min(28vw,230px);line-height:.88;letter-spacing:-.05em;text-transform:uppercase;font-weight:900}
-  body.title #title{display:block}
-  .corner{all:unset;box-sizing:border-box;position:fixed;bottom:calc(26px + var(--safe-b));width:64px;height:64px;display:none;place-items:center;cursor:pointer;z-index:4}
-  body.title .corner{display:grid}
-  #book{left:calc(50% + 8px)}
-  #book i{display:block;width:34px;height:42px;border:3px solid var(--ink);border-radius:8px;background:var(--field);box-shadow:5px -5px 0 -2px var(--ink)}
-  #door{left:calc(50% - 72px)}
-  #door i{display:block;width:30px;height:42px;border:3px solid var(--ink);border-radius:15px 15px 3px 3px;position:relative}
-  #door i::after{content:"";position:absolute;right:5px;top:22px;width:5px;height:5px;border-radius:50%;background:var(--ink)}
-  .corner:focus-visible{outline:3px solid var(--ink);outline-offset:-4px}
+  #top{position:fixed;top:calc(var(--safe-t) + 14px);left:18px;right:18px;display:flex;justify-content:space-between;align-items:center;z-index:3;pointer-events:none}
+  #mark{font-size:30px;font-weight:700;letter-spacing:.01em;line-height:1}
+  #count{display:flex;align-items:center;gap:7px;padding:7px 14px 7px 11px;border-radius:20px;background:rgba(255,255,255,.72);box-shadow:0 3px 12px rgba(120,80,140,.14);font-size:16px;font-variant-numeric:tabular-nums}
+  #count i{width:14px;height:13px;background:var(--pink);clip-path:path('M7 13C-4 6 1-2 7 3.2 13-2 18 6 7 13Z')}
+  #nav{position:fixed;left:50%;bottom:calc(14px + var(--safe-b));transform:translateX(-50%);z-index:4;display:flex;gap:4px;padding:6px;border-radius:34px;background:rgba(255,255,255,.74);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);box-shadow:0 8px 24px rgba(120,80,140,.2)}
+  #nav button{all:unset;box-sizing:border-box;width:58px;height:58px;border-radius:29px;display:grid;place-items:center;cursor:pointer;color:var(--ink);opacity:.62;transition:transform .15s var(--ease-out),background-color .2s var(--ease-out),opacity .2s var(--ease-out)}
+  #nav button svg{width:28px;height:28px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+  #nav button:active{transform:scale(.94)}
+  #nav button.on{background:var(--pink);color:#fff;opacity:1;transform:scale(1.04)}
+  #nav button:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+  #door{position:fixed;right:18px;bottom:calc(92px + var(--safe-b));width:48px;height:48px;border-radius:24px;background:rgba(255,255,255,.74);box-shadow:0 4px 14px rgba(120,80,140,.18);display:none;place-items:center;z-index:4;color:var(--ink)}
+  body.r-book #door{display:grid}
+  #door svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
   #burst{position:fixed;inset:0;pointer-events:none;background:var(--next);clip-path:circle(0 at var(--bx) var(--by));z-index:5}
   #burst.go{animation:burst .45s var(--ease-out) forwards}
   @keyframes burst{to{clip-path:circle(150vmax at var(--bx) var(--by))}}
-  @media(prefers-reduced-motion:reduce){body,#steps i,#bar b{transition:none}#burst.go{animation:none;opacity:0}}
+  @media(prefers-reduced-motion:reduce){#nav button{transition:none}#burst.go{animation:none;opacity:0}}
 </style>
 </head>
-<body class="title">
-<canvas id="c" aria-label="장난감 캔버스"></canvas>
-<div id="title"><h1>Achoo</h1></div>
-<div id="steps" aria-hidden="true"></div>
-<div id="bar"><b id="fill"></b></div>
-<button id="book" class="corner" aria-label="스티커북"><i></i></button>
-<a id="door" class="corner" href="escape.html" aria-label="방탈출"><i></i></a>
+<body class="r-home">
+<canvas id="c" aria-label="Achoo"></canvas>
+<header id="top"><b id="mark">Achoo</b><span id="count"><i></i><span id="cn">0/42</span></span></header>
+<nav id="nav" aria-label="메뉴">
+  <button data-room="home" class="on" aria-label="왁스볼"><svg viewBox="0 0 28 28"><circle cx="14" cy="14" r="10"/><path d="M9 10.5c1.2-2 3-3 5-3"/></svg></button>
+  <button data-room="wrap" aria-label="뽁뽁이"><svg viewBox="0 0 28 28"><circle cx="8.5" cy="8.5" r="4.5"/><circle cx="19.5" cy="8.5" r="4.5"/><circle cx="8.5" cy="19.5" r="4.5"/><circle cx="19.5" cy="19.5" r="4.5"/></svg></button>
+  <button data-room="squish" aria-label="말랑"><svg viewBox="0 0 28 28"><path d="M4 17c0-7 5-12 10-12s10 5 10 12c0 4-4 6-10 6S4 21 4 17Z"/><circle cx="10.5" cy="16" r=".6"/><circle cx="17.5" cy="16" r=".6"/></svg></button>
+  <button data-room="book" aria-label="도감"><svg viewBox="0 0 28 28"><rect x="5" y="4" width="18" height="20" rx="4"/><path d="M14 9.5l1.4 2.9 3.1.4-2.3 2.2.6 3.1-2.8-1.5-2.8 1.5.6-3.1-2.3-2.2 3.1-.4Z"/></svg></button>
+</nav>
+<a id="door" href="escape.html" aria-label="방탈출"><svg viewBox="0 0 24 24"><path d="M6 21V8a6 6 0 0 1 12 0v13M4 21h16"/><circle cx="14.5" cy="14" r=".7"/></svg></a>
 <div id="burst"></div>
+<script src="art.js"></script>
 <script src="toy.js"></script>
 <script>boot()</script>
 </body>
