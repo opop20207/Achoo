@@ -53,7 +53,7 @@ function glossBall(cx,cy,R,col,v,t,seed){
 }
 reg({id:'home',
   init(){this.fx=Parts();this.sh=[];this.touched=false;this.nb()},
-  nb(){const[k,v]=rollOne();this.k=k;this.v=v;this.col=pick(WAX);this.seed=Math.random();this.hits=0;this.max=6+((Math.random()*3)|0)+(v?1:0);this.cr=[];this.sq=0;this.born=performance.now();this.state=0;this.t1=0;this.fresh=false;this.R=Math.min(W*.36,H*.2)},
+  nb(){const[k,v]=rollOne();this.k=k;this.v=v;this.col=pick(WAX);this.seed=Math.random();this.hits=0;this.max=16+((Math.random()*9)|0)+v*5;this.cr=[];this.sq=0;this.born=performance.now();this.state=0;this.t1=0;this.fresh=false;this.R=Math.min(W*.36,H*.2)},
   cy(){return H*.45},
   down(){const now=performance.now();
     if(this.state===1){if(now-this.t1>550)this.nb();return}
