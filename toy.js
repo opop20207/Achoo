@@ -31,6 +31,8 @@ function blip(f=500,d=.12,type='triangle',v=.1,delay=0){
   o.connect(g).connect(AC.destination);o.start(t);o.stop(t+d)}catch(e){}
 }
 const jingle=()=>[523,659,784,1047].forEach((f,i)=>blip(f,.16,'triangle',.09,i*.09));
+function noise(d=.12,f=2000,v=.15,delay=0){try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();const t=AC.currentTime+delay,n=(AC.sampleRate*d)|0,b=AC.createBuffer(1,n,AC.sampleRate),a=b.getChannelData(0);for(let i=0;i<n;i++)a[i]=(Math.random()*2-1)*Math.pow(1-i/n,3);const o=AC.createBufferSource();o.buffer=b;const fl=AC.createBiquadFilter();fl.type='bandpass';fl.frequency.value=f;fl.Q.value=.8;const g=AC.createGain();g.gain.value=v;o.connect(fl).connect(g).connect(AC.destination);o.start(t)}catch(e){}}
+const crunch=()=>{noise(.09,2600+rnd(0,1500),.22);noise(.05,900,.15,.02)},popS=()=>blip(380+rnd(0,160),.07,'sine',.14),click=()=>noise(.02,5000,.2);
 const squeak=k=>blip(520+k*140+rnd(0,60),.1,'sine',.08);
 const PENT=[523,587,659,784,880,1047];
 
@@ -111,7 +113,7 @@ try{Object.assign(meta,JSON.parse(localStorage.getItem('achoo.toy2')||'{}'))}cat
 const saveMeta=()=>{try{localStorage.setItem('achoo.toy2',JSON.stringify(meta))}catch(e){}};
 
 // ---- state ----
-const POOL=['path','stretch','tilt','scratch','wind','line','feed','huddle'];
+const POOL=['crack','wrap','stretch','scratch','wind','fit','feed'];
 let room,run=null,busy=true,DIFF=1,lastPal=-1;
 const rings=[];const ring=(x,y,r=46)=>{if(!reduce)rings.push({x,y,r,t:performance.now()})};
 function hud(){steps.innerHTML='';if(!run||room.tier!=='play')return;run.list.forEach((id,i)=>{const e=document.createElement('i');e.className=i<run.i?'done':i===run.i?'now':'';steps.appendChild(e)})}
@@ -170,30 +172,6 @@ reg({id:'reward',tier:'reward',
     this.fx.draw(.08)}});
 
 // ================= the toys =================
-// 1. draw the road: friend wants the snack across the puddles. Draw a line; they walk it.
-reg({id:'path',tier:'play',
-  init(){const L=Math.random()<.5;this.k=(Math.random()*3)|0;this.fk=(Math.random()*4)|0;this.sx=L?W*.14:W*.86;this.sy=rnd(H*.6,H*.8);this.gx=L?W*.86:W*.14;this.gy=rnd(H*.22,H*.4);
-    this.ob=[];for(let i=0,n=DIFF>1.2?3:2;i<n;i++){const t=.2+.6*(i+.5)/n,r=rnd(46,74);this.ob.push({x:this.sx+(this.gx-this.sx)*t+rnd(-30,30),y:this.sy+(this.gy-this.sy)*t+rnd(-40,40),r})}
-    this.pts=[];this.drawing=false;this.walk=-1;this.bad=0;this.touched=false;this.px=this.sx;this.py=this.sy;this.fin=0;this.done=false;this.p=0;this.fx=Parts()},
-  down(){if(this.walk>=0)return;this.touched=true;this.drawing=Math.hypot(M.x-this.sx,M.y-this.sy)<100;if(this.drawing){this.pts=[[this.sx,this.sy],[M.x,M.y]];this.bad=0}},
-  move(){if(!this.drawing||!M.down)return;const l=this.pts[this.pts.length-1];if(Math.hypot(M.x-l[0],M.y-l[1])>7)this.pts.push([M.x,M.y])},
-  up(){if(!this.drawing)return;this.drawing=false;const e=this.pts[this.pts.length-1];
-    const hit=this.pts.some(p=>this.ob.some(o=>Math.hypot(p[0]-o.x,p[1]-o.y)<o.r+6));
-    if(!hit&&this.pts.length>4&&Math.hypot(e[0]-this.gx,e[1]-this.gy)<90){this.pts.push([this.gx,this.gy]);this.cum=[0];for(let i=1;i<this.pts.length;i++)this.cum.push(this.cum[i-1]+Math.hypot(this.pts[i][0]-this.pts[i-1][0],this.pts[i][1]-this.pts[i-1][1]));this.walk=0;blip(660,.1)}
-    else{this.bad=performance.now();buzz([20,20]);blip(200,.15,'sine',.05)}},
-  draw(t){const f=this.field,now=performance.now();
-    for(const o of this.ob){ctx.fillStyle=f[3];ctx.strokeStyle=OUT;ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(o.x,o.y,o.r,o.r*.7,0,0,6.28);ctx.fill();ctx.stroke();ctx.strokeStyle='rgba(255,255,255,.8)';ctx.beginPath();ctx.arc(o.x-o.r*.2,o.y-o.r*.1,o.r*.35,3.5,4.6);ctx.stroke()}
-    if(this.bad&&now-this.bad>500){this.pts=[];this.bad=0}
-    if(this.pts.length>1){ctx.strokeStyle=this.bad?'#ff6f8f':f[1];ctx.globalAlpha=this.bad?1-(now-this.bad)/500:.8;ctx.lineWidth=7;ctx.setLineDash([1,14]);ctx.lineCap='round';ctx.beginPath();ctx.moveTo(this.pts[0][0],this.pts[0][1]);for(const p of this.pts)ctx.lineTo(p[0],p[1]);ctx.stroke();ctx.setLineDash([]);ctx.globalAlpha=1}
-    if(!this.touched)hint(this.sx,this.sy,t,70);
-    food(this.fk,this.gx,this.gy+(reduce?0:Math.sin(t/300)*3),Math.min(W*.07,30));
-    let mood='happy',step=0,look=[this.gx,this.gy];
-    if(this.walk>=0&&!this.fin){this.walk+=6;const L=this.cum[this.cum.length-1];if(this.walk>=L){this.fin=now;this.walk=L;this.fx.burst(this.gx,this.gy,16,['#ff9ec2','#fff',f[3]],5);blip(780,.15);buzz(20);setTimeout(()=>{this.done=true},900)}
-      let i=1;while(i<this.cum.length-1&&this.cum[i]<this.walk)i++;const a=this.pts[i-1],b=this.pts[i],u=(this.walk-this.cum[i-1])/((this.cum[i]-this.cum[i-1])||1);this.px=a[0]+(b[0]-a[0])*u;this.py=a[1]+(b[1]-a[1])*u;step=this.walk/9;look=b}
-    if(this.fin){mood='open';this.px=this.gx-(this.gx>W/2?44:-44);this.py=this.gy}
-    chara(this.k,this.px,this.py,Math.min(W*.085,36),{mood,step,lx:look[0],ly:look[1],hop:this.walk>=0&&!this.fin?Math.abs(Math.sin(step))*5:0,arms:this.fin?1:0});
-    this.p=this.walk>=0?this.walk/this.cum[this.cum.length-1]:0;this.fx.draw(.1)}});
-
 // 2. stretch: grab a cheek, pull it as far as it goes, let go. Boing.
 reg({id:'stretch',tier:'play',
   init(){this.k=(Math.random()*3)|0;this.R=Math.min(W,H)*.24;this.N=16;this.q=Array.from({length:this.N},(_,i)=>({a:i/this.N*6.2832,ox:0,oy:0,vx:0,vy:0}));this.g=-1;this.gox=0;this.goy=0;this.mx=0;this.n=0;this.need=Math.round(3+DIFF);this.touched=false;this.t=0;this.done=false;this.p=0;this.fx=Parts()},
@@ -209,30 +187,6 @@ reg({id:'stretch',tier:'play',
     if(!this.touched)hint(cx+R,cy,t,60);
     chara(this.k,cx,cy,R,{pts,mood,fx:ax*.6,fy:ay*.6,lx:M.x,ly:M.y,acc:this.k===1?1:0,arms:this.g>=0?1:0});this.fx.draw(.1)}});
 
-// 3. tilt: roll the friends into the cosy hole. Tilt your phone, or hold a finger: the table leans toward it.
-const TILT={on:false,gx:0,gy:0,asked:false};
-addEventListener('deviceorientation',e=>{if(e.gamma!=null&&e.beta!=null){TILT.on=true;TILT.gx=Math.max(-1,Math.min(1,e.gamma/30))*.55;TILT.gy=Math.max(-1,Math.min(1,(e.beta-35)/30))*.55}});
-reg({id:'tilt',tier:'play',
-  init(){const hx=rnd(W*.25,W*.75),hy=rnd(H*.3,H*.7);this.hole={x:hx,y:hy,r:Math.min(W*.13,56)};this.r=Math.min(W*.065,26);
-    this.rocks=[];for(let i=0;i<2;i++){for(let g=0;g<20;g++){const o={x:rnd(60,W-60),y:rnd(120,H-120),r:rnd(26,42)};if(Math.hypot(o.x-hx,o.y-hy)>o.r+this.hole.r+50){this.rocks.push(o);break}}}
-    this.b=[];const n=Math.round(4+DIFF);for(let i=0;i<n;i++){for(let g=0;g<30;g++){const x=rnd(40,W-40),y=rnd(110,H-60);if(Math.hypot(x-hx,y-hy)>H*.25&&this.rocks.every(o=>Math.hypot(x-o.x,y-o.y)>o.r+this.r+8)){this.b.push({x,y,vx:0,vy:0,k:i%3,rot:0});break}}}
-    this.need=this.b.length;this.n=0;this.t0=performance.now();this.touched=false;this.done=false;this.p=0;this.fx=Parts()},
-  down(){this.touched=true;if(!TILT.asked&&typeof DeviceOrientationEvent!=='undefined'&&DeviceOrientationEvent.requestPermission){TILT.asked=true;DeviceOrientationEvent.requestPermission().catch(()=>{})}},
-  draw(t){const f=this.field,h=this.hole,r=this.r;let gx=0,gy=0;
-    if(M.down){gx=(M.x-W/2)/(W/2)*.55;gy=(M.y-H/2)/(H/2)*.55}else if(TILT.on){gx=TILT.gx;gy=TILT.gy}
-    else if(!this.touched&&performance.now()-this.t0<1800){const dx=h.x-W/2,dy=h.y-H/2,d=Math.hypot(dx,dy)||1;gx=dx/d*.2;gy=dy/d*.2}
-    ctx.fillStyle=f[1];ctx.globalAlpha=.85;ctx.beginPath();ctx.ellipse(h.x,h.y,h.r,h.r*.8,0,0,6.28);ctx.fill();ctx.globalAlpha=1;ctx.strokeStyle=OUT;ctx.lineWidth=3;ctx.stroke();
-    for(const o of this.rocks){ctx.fillStyle='#d9cbbd';ctx.strokeStyle=OUT;ctx.lineWidth=3;ctx.beginPath();ctx.arc(o.x,o.y,o.r,0,6.28);ctx.fill();ctx.stroke()}
-    const B=this.b;
-    for(let i=B.length-1;i>=0;i--){const b=B[i];b.vx=(b.vx+gx)*.985;b.vy=(b.vy+gy)*.985;b.x+=b.vx;b.y+=b.vy;
-      if(b.x<r){b.x=r;b.vx*=-.5}if(b.x>W-r){b.x=W-r;b.vx*=-.5}if(b.y<r+50){b.y=r+50;b.vy*=-.5}if(b.y>H-r){b.y=H-r;b.vy*=-.5}
-      for(const o of this.rocks){const dx=b.x-o.x,dy=b.y-o.y,d=Math.hypot(dx,dy)||1;if(d<r+o.r){const nx=dx/d,ny=dy/d;b.x=o.x+nx*(r+o.r);b.y=o.y+ny*(r+o.r);const dt=b.vx*nx+b.vy*ny;if(dt<0){b.vx-=1.5*dt*nx;b.vy-=1.5*dt*ny}}}
-      for(let j=i+1;j<B.length;j++){const c=B[j],dx=c.x-b.x,dy=c.y-b.y,d=Math.hypot(dx,dy)||1;if(d<r*2){const p=(r*2-d)/2,nx=dx/d,ny=dy/d;b.x-=nx*p;b.y-=ny*p;c.x+=nx*p;c.y+=ny*p}}
-      b.rot+=b.vx*.02;
-      if(Math.hypot(b.x-h.x,b.y-h.y)<h.r*.55){B.splice(i,1);this.n++;this.p=this.n/this.need;squeak(b.k);buzz(12);this.fx.burst(h.x,h.y,12,['#ff9ec2','#fff',f[3]],4);if(this.n>=this.need)this.done=true}}
-    for(const b of B)chara(b.k,b.x,b.y-r*.15,r,{rot:b.rot,mood:Math.hypot(b.vx,b.vy)>2.5?'open':'happy',lx:h.x,ly:h.y});
-    this.fx.draw(.1)}});
-
 // 4. scratch: a blanket hides sleepy friends. Rub it away to find them all.
 reg({id:'scratch',tier:'play',
   init(){this.bc=document.createElement('canvas');this.bc.width=W;this.bc.height=H;const g=this.bg=this.bc.getContext('2d'),f=this.field;
@@ -243,7 +197,7 @@ reg({id:'scratch',tier:'play',
   down(){this.touched=true;this.lx=M.x;this.ly=M.y;this.dab()},
   move(){if(M.down)this.dab()},
   up(){this.lx=-1},
-  dab(){const g=this.bg;g.globalCompositeOperation='destination-out';g.lineCap='round';g.lineWidth=70;g.beginPath();g.moveTo(this.lx<0?M.x:this.lx,this.ly<0?M.y:this.ly);g.lineTo(M.x,M.y);g.stroke();g.globalCompositeOperation='source-over';this.lx=M.x;this.ly=M.y;
+  dab(){const g=this.bg;if(Math.random()<.5)noise(.05,1800,.07);g.globalCompositeOperation='destination-out';g.lineCap='round';g.lineWidth=70;g.beginPath();g.moveTo(this.lx<0?M.x:this.lx,this.ly<0?M.y:this.ly);g.lineTo(M.x,M.y);g.stroke();g.globalCompositeOperation='source-over';this.lx=M.x;this.ly=M.y;
     const cw=W/this.gc,ch=H/this.gr;for(let a=0;a<this.gc;a++)for(let b=0;b<this.gr;b++){if(!this.grid[b*this.gc+a]&&Math.hypot((a+.5)*cw-M.x,(b+.5)*ch-M.y)<44)this.grid[b*this.gc+a]=1}
     for(const c of this.c){if(c.found)continue;let tot=0,on=0;for(let a=0;a<this.gc;a++)for(let b=0;b<this.gr;b++){if(Math.hypot((a+.5)*cw-c.x,(b+.5)*ch-c.y)<c.R){tot++;if(this.grid[b*this.gc+a])on++}}
       if(tot&&on/tot>.6){c.found=performance.now();this.n++;this.p=this.n/3;squeak(c.k);buzz(15);this.fx.burst(c.x,c.y,14,['#ff9ec2','#fff','#ffd54f'],5);if(this.n>=3)setTimeout(()=>{this.fade=performance.now();setTimeout(()=>{this.done=true},700)},500)}}},
@@ -257,7 +211,7 @@ reg({id:'wind',tier:'play',
   init(){this.w=0;this.last=0;this.step=0;this.need=Math.PI*2*3;this.touched=false;this.fin=0;this.done=false;this.p=0;this.fx=Parts();this.cx=W/2;this.cy=H*.62;this.ks=[0,1,2].sort(()=>Math.random()-.5)},
   down(){this.touched=true;this.last=Math.atan2(M.y-this.cy,M.x-this.cx)},
   move(){if(!M.down||this.fin)return;if(Math.hypot(M.x-this.cx,M.y-this.cy)<30)return;const a=Math.atan2(M.y-this.cy,M.x-this.cx);let d=a-this.last;if(d>Math.PI)d-=6.2832;if(d<-Math.PI)d+=6.2832;this.last=a;
-    this.w=Math.max(0,Math.min(this.need,this.w+d));this.p=this.w/this.need;const s=Math.floor(this.w/(Math.PI/3));if(s!==this.step){this.step=s;blip(PENT[s%PENT.length],.18,'triangle',.08);buzz(6)}
+    this.w=Math.max(0,Math.min(this.need,this.w+d));this.p=this.w/this.need;const s=Math.floor(this.w/(Math.PI/6));if(s!==this.step){this.step=s;click();blip(PENT[s%PENT.length],.18,'triangle',.08);buzz(6)}
     if(this.w>=this.need&&!this.fin){this.fin=performance.now();jingle();this.fx.burst(W/2,H*.3,60,['#ff9ec2','#fff','#ffd54f','#bfe3ff'],8);setTimeout(()=>{this.done=true},1200)}},
   draw(t){const f=this.field,cx=this.cx,cy=this.cy,p=this.p,R=Math.min(W*.3,120);
     ctx.fillStyle=f[3];ctx.strokeStyle=OUT;ctx.lineWidth=4;ctx.beginPath();ctx.roundRect(W/2-Math.min(W*.4,170),cy-R*1.1,Math.min(W*.8,340),R*2.2,26);ctx.fill();ctx.stroke();
@@ -270,64 +224,89 @@ reg({id:'wind',tier:'play',
     if(p>.05&&!reduce&&Math.random()<.08*p+.02){const x=W*rnd(.15,.85);this.fx.a.push({x,y:H*.2,vx:rnd(-.5,.5),vy:rnd(-1.8,-.8),l:1,c:pick(['#ff9ec2','#ffd54f','#9ad7ff']),r:rnd(4,7),k:1})}
     this.fx.draw(-.01)}});
 
-// 6. line up: little to big. Count the dots under each spot.
-reg({id:'line',tier:'play',
-  init(){const R0=Math.min(W*.085,40);this.R0=R0;this.sl=[0,1,2,3].map(i=>({x:W*(.14+.24*i)+R0*.2,y:H*.8,occ:-1}));
-    const spots=shuffle([[.25,.3],[.75,.3],[.25,.52],[.75,.52]]);this.c=shuffle([0,1,2,3]).map((rank,i)=>({rank,k:(Math.random()*3)|0,r:R0*(.72+rank*.2),hx:W*spots[i][0],hy:H*spots[i][1]+R0,x:W*spots[i][0],y:H*spots[i][1]+R0,slot:-1,lift:0}));
-    this.d=null;this.touched=false;this.fin=0;this.done=false;this.p=0;this.fx=Parts()},
-  down(){this.touched=true;if(this.fin)return;let b=null,bd=1e9;this.c.forEach(c=>{const d=Math.hypot(M.x-c.x,M.y-(c.y-c.r*.4));if(d<c.r*1.5&&d<bd){bd=d;b=c}});if(b){this.d=b;if(b.slot>=0){this.sl[b.slot].occ=-1;b.slot=-1}this.c.splice(this.c.indexOf(b),1);this.c.push(b);squeak(b.k)}},
-  up(){const c=this.d;if(!c)return;this.d=null;let bi=-1,bd=100;this.sl.forEach((s,i)=>{const d=Math.hypot(c.x-s.x,c.y-s.y);if(d<bd){bd=d;bi=i}});
-    if(bi>=0){const s=this.sl[bi];if(s.occ>=0){const o=this.c[s.occ];o.slot=-1;o.x=o.hx;o.y=o.hy}s.occ=this.c.indexOf(c);c.slot=bi;blip(500+bi*60,.1);buzz(8)}
-    this.sl.forEach((s,i)=>{s.occ=-1});this.c.forEach((q,i)=>{if(q.slot>=0)this.sl[q.slot].occ=i});
-    let ok=0;this.sl.forEach((s,i)=>{if(s.occ>=0&&this.c[s.occ].rank===i)ok++});this.p=ok/4;
-    if(ok===4&&!this.fin){this.fin=performance.now();jingle();this.fx.burst(W/2,H*.5,50,['#ff9ec2','#fff','#ffd54f'],7);setTimeout(()=>{this.done=true},1100)}},
-  draw(t){const f=this.field,now=performance.now();
-    this.sl.forEach((s,i)=>{ctx.strokeStyle=f[1];ctx.globalAlpha=.5;ctx.lineWidth=3;ctx.setLineDash([8,8]);ctx.beginPath();ctx.ellipse(s.x,s.y+4,this.R0*1.1,this.R0*.4,0,0,6.28);ctx.stroke();ctx.setLineDash([]);ctx.globalAlpha=1;
-      ctx.fillStyle=f[1];for(let k=0;k<=i;k++){ctx.beginPath();ctx.arc(s.x-i*7+k*14,s.y+this.R0*.8,4,0,6.28);ctx.fill()}
-      if(s.occ>=0&&this.c[s.occ].rank===i)heart(s.x,s.y+this.R0*1.45,9,'#ff7fa5')});
-    this.c.forEach(c=>{const drag=c===this.d;c.lift+=((drag?1:0)-c.lift)*.3;
-      if(drag){c.x+=(M.x-c.x)*.6;c.y+=(M.y+c.r*.4-c.y)*.6}else if(c.slot>=0){const s=this.sl[c.slot];c.x+=(s.x-c.x)*.35;c.y+=(s.y-c.r-c.y)*.35}else{c.x+=(c.hx-c.x)*.35;c.y+=(c.hy-c.y)*.35}
-      const j=this.fin?Math.max(0,Math.sin((now-this.fin)/110-c.rank*.9))*14:0;
-      chara(c.k,c.x,c.y-c.lift*12,c.r,{mood:drag?'open':this.fin?'open':'happy',arms:drag||this.fin?1:0,hop:j,sx:1+c.lift*.05,sy:1+c.lift*.05})});
+// 1. crack: a wax-shelled ball with a friend inside. Tap, tap, tap... crunch, and out they pop.
+const WAX=['#ffb3c7','#9ad7ff','#b6e3a8','#ffe08a','#c9b6ff','#ffc09a'];
+reg({id:'crack',tier:'play',
+  init(){this.n=0;this.need=3;this.touched=false;this.done=false;this.p=0;this.fx=Parts();this.sh=[];this.newBall()},
+  newBall(){this.col=pick(WAX);this.k=(Math.random()*3)|0;this.hits=0;this.max=7+((Math.random()*3)|0);this.cr=[];this.sq=0;this.born=performance.now();this.state=0;this.t1=0;this.R=Math.min(W,H)*.25},
+  down(){this.touched=true;if(this.state||performance.now()-this.born<250)return;const cx=W/2,cy=H*.48;if(Math.hypot(M.x-cx,M.y-cy)>this.R*1.25)return;
+    this.hits++;this.sq=1;crunch();buzz(this.hits>=this.max?[30,20,40]:12);
+    const a0=Math.atan2(M.y-cy,M.x-cx),px=Math.max(-this.R*.8,Math.min(this.R*.8,M.x-cx)),py=Math.max(-this.R*.8,Math.min(this.R*.8,M.y-cy));
+    for(let b=0;b<3;b++){let x=px,y=py,a=a0+rnd(-1.6,1.6);const seg=[[x,y]];for(let s=0;s<4;s++){a+=rnd(-.6,.6);x+=Math.cos(a)*this.R*rnd(.1,.2);y+=Math.sin(a)*this.R*rnd(.1,.2);seg.push([x,y])}this.cr.push(seg)}
+    for(let i=0;i<5;i++)this.fx.a.push({x:M.x,y:M.y,vx:rnd(-3,3),vy:rnd(-4,-1),l:.8,c:this.col,r:rnd(2,4),k:0});
+    if(this.hits>=this.max)this.shatter()},
+  shatter(){this.state=1;this.t1=performance.now();const cx=W/2,cy=H*.48;crunch();setTimeout(crunch,60);buzz([40,30,60]);
+    for(let i=0;i<18;i++){const a=i/18*6.28+rnd(-.2,.2);this.sh.push({x:cx+Math.cos(a)*this.R*.5,y:cy+Math.sin(a)*this.R*.5,vx:Math.cos(a)*rnd(3,9),vy:Math.sin(a)*rnd(3,9)-3,r:rnd(8,20),rot:rnd(0,6),vr:rnd(-.3,.3),c:this.col})}
+    this.fx.burst(cx,cy,24,['#fff',this.col,'#ffd54f'],7);
+    this.n++;this.p=this.n/this.need;squeak(this.k);
+    setTimeout(()=>{if(this.n>=this.need)this.done=true;else this.newBall()},1100)},
+  draw(t){const cx=W/2,cy=H*.48,R=this.R,now=performance.now();this.sq*=.82;
+    if(this.state){const k=clamp01((now-this.t1)/260),hop=Math.abs(Math.sin((now-this.t1)/160))*30*Math.max(0,1-(now-this.t1)/1000);
+      chara(this.k,cx,cy,R*.75*(.4+.6*(1-Math.pow(1-k,3))),{mood:'open',arms:1,hop,acc:this.k===2?6:0})}
+    else{const grow=clamp01((now-this.born)/300),s=(.5+.5*(1-Math.pow(1-grow,3)))*(1+this.sq*.1);
+      ctx.save();ctx.translate(cx,cy);ctx.scale(s*(1+this.sq*.06),s*(1-this.sq*.06));
+      if(this.hits>this.max*.5)chara(this.k,0,0,R*.6,{mood:'blink'});
+      ctx.globalAlpha=this.hits>this.max*.5?.82:1;ctx.fillStyle=this.col;ctx.strokeStyle=OUT;ctx.lineWidth=4;ctx.beginPath();ctx.arc(0,0,R,0,6.28);ctx.fill();ctx.stroke();ctx.globalAlpha=1;
+      ctx.fillStyle='rgba(255,255,255,.55)';ctx.beginPath();ctx.ellipse(-R*.38,-R*.4,R*.2,R*.12,-.6,0,6.28);ctx.fill();
+      ctx.strokeStyle='rgba(255,255,255,.8)';ctx.lineWidth=3;ctx.lineCap='round';for(let i=0;i<14;i++){ctx.beginPath();const a=i*2.4,r=R*(.35+(i%5)*.12);ctx.arc(Math.cos(a)*r,Math.sin(a)*r+R*.1,1,0,6.28);ctx.stroke()}
+      ctx.strokeStyle=OUT;ctx.lineWidth=2.5;for(const sg of this.cr){ctx.beginPath();sg.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));ctx.stroke()}
+      ctx.restore()}
+    if(!this.touched)hint(cx,cy,t,R*.7);
+    for(let i=this.sh.length-1;i>=0;i--){const s=this.sh[i];s.x+=s.vx;s.y+=s.vy;s.vy+=.5;s.rot+=s.vr;if(s.y>H+40){this.sh.splice(i,1);continue}
+      ctx.save();ctx.translate(s.x,s.y);ctx.rotate(s.rot);ctx.fillStyle=s.c;ctx.strokeStyle=OUT;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-s.r,s.r*.6);ctx.lineTo(0,-s.r);ctx.lineTo(s.r,s.r*.5);ctx.closePath();ctx.fill();ctx.stroke();ctx.restore()}
+    this.fx.draw(.15)}});
+
+// 3. wrap: a sheet of bubbles. Tap or sweep; some hide a friend.
+reg({id:'wrap',tier:'play',
+  init(){const r=Math.min(W/10,34),dx=r*2.15,dy=r*1.9;this.r=r;this.b=[];let row=0;for(let y=70+r;y<H-r;y+=dy,row++)for(let x=(row%2?dx/2:0)+r+4;x<W-r+2;x+=dx)this.b.push({x,y,pop:0,k:Math.random()<.12?(Math.random()*3)|0:-1,c:Math.random()});
+    this.need=Math.floor(this.b.length*.85);this.n=0;this.last=0;this.touched=false;this.done=false;this.p=0;this.fx=Parts()},
+  down(){this.touched=true;this.hit()},move(){if(M.down)this.hit()},
+  hit(){const now=performance.now();for(const b of this.b){if(!b.pop&&Math.hypot(b.x-M.x,b.y-M.y)<this.r*.95){b.pop=now;this.n++;this.p=this.n/this.need;if(now-this.last>35){popS();buzz(6);this.last=now}if(b.k>=0)squeak(b.k);this.fx.burst(b.x,b.y,5,['#fff',this.field[2],this.field[3]],3);if(this.n>=this.need)this.done=true}}},
+  draw(t){const f=this.field,r=this.r,now=performance.now();
+    for(const b of this.b){if(b.pop){const k=clamp01((now-b.pop)/220);
+        ctx.fillStyle='rgba(255,255,255,.35)';ctx.beginPath();ctx.arc(b.x,b.y,r*(.55+.1*k),0,6.28);ctx.fill();
+        if(b.k>=0)chara(b.k,b.x,b.y-Math.sin(k*3.14)*10,r*.85,{mood:'open'});
+        ctx.strokeStyle=f[1];ctx.globalAlpha=.25;ctx.lineWidth=2;ctx.beginPath();ctx.arc(b.x,b.y,r*.55,.2,2.6);ctx.stroke();ctx.globalAlpha=1}
+      else{ctx.fillStyle=b.c<.5?f[3]:f[2];ctx.globalAlpha=.55;ctx.beginPath();ctx.arc(b.x,b.y,r,0,6.28);ctx.fill();ctx.globalAlpha=1;ctx.strokeStyle=f[1];ctx.lineWidth=2.5;ctx.stroke();
+        ctx.fillStyle='rgba(255,255,255,.85)';ctx.beginPath();ctx.ellipse(b.x-r*.32,b.y-r*.34,r*.22,r*.13,-.7,0,6.28);ctx.fill();
+        if(b.k>=0){ctx.globalAlpha=.55;chara(b.k,b.x,b.y+2,r*.6,{mood:'sleep'});ctx.globalAlpha=1}}}
+    if(!this.touched)hint(W/2,H/2,t,70);this.fx.draw(.1)}});
+
+// 6. fit: every friend has its own snug spot. Drag close and it clicks into place.
+reg({id:'fit',tier:'play',
+  init(){const r=Math.min(W*.1,42);this.r=r;const ks=shuffle([0,1,2,(Math.random()*3)|0]),xs=[.14,.38,.62,.86];this.sl=ks.map((k,i)=>({k,x:W*xs[i],y:H*.3,occ:false}));
+    this.c=shuffle(ks.slice()).map((k,i)=>({k,x:W*xs[i],y:H*.7,hx:W*xs[i],hy:H*.7,placed:-1,sq:0}));this.d=null;this.n=0;this.touched=false;this.fin=0;this.done=false;this.p=0;this.fx=Parts()},
+  down(){this.touched=true;const c=this.c.filter(c=>c.placed<0).find(c=>Math.hypot(M.x-c.x,M.y-c.y)<this.r*1.6);if(c){this.d=c;squeak(c.k);this.c.splice(this.c.indexOf(c),1);this.c.push(c)}},
+  target(c){return this.sl.find(s=>!s.occ&&s.k===c.k&&Math.hypot(s.x-c.x,s.y-c.y)<this.r*3)},
+  up(){const c=this.d;if(!c)return;this.d=null;const s=this.sl.find(s=>!s.occ&&s.k===c.k&&Math.hypot(s.x-c.x,s.y-c.y)<this.r*2.2);
+    if(s){s.occ=true;c.placed=1;c.x=s.x;c.y=s.y;c.sq=1;this.n++;this.p=this.n/4;click();blip(700+this.n*80,.1);buzz([12,18,12]);this.fx.burst(s.x,s.y,12,['#ff9ec2','#fff','#ffd54f'],4);
+      if(this.n>=4){this.fin=performance.now();setTimeout(jingle,200);setTimeout(()=>{this.done=true},1100)}}},
+  draw(t){const f=this.field,r=this.r,now=performance.now();
+    for(const s of this.sl){ctx.globalAlpha=s.occ?0:.3;chara(s.k,s.x,s.y,r,{ghost:true});ctx.globalAlpha=1}
+    for(const c of this.c){c.sq*=.85;
+      if(c===this.d){const s=this.target(c);let tx=M.x,ty=M.y;if(s){const k=1-Math.hypot(s.x-M.x,s.y-M.y)/(r*3);tx+=(s.x-M.x)*k*.85;ty+=(s.y-M.y)*k*.85}c.x+=(tx-c.x)*.5;c.y+=(ty-c.y)*.5}
+      else if(c.placed<0){c.x+=(c.hx-c.x)*.3;c.y+=(c.hy-c.y)*.3}
+      const j=this.fin?Math.max(0,Math.sin((now-this.fin)/120+c.x/90))*14:0;
+      chara(c.k,c.x,c.y,r*(c===this.d?1.1:1),{sx:1+c.sq*.15,sy:1-c.sq*.15,mood:c===this.d||this.fin?'open':'happy',arms:c===this.d||this.fin?1:0,hop:j,lx:M.x,ly:M.y})}
+    if(!this.touched){const c=this.c[0];if(c)hint(c.x,c.y,t,50)}
     this.fx.draw(.1)}});
 
-// 7. feed: they ask with a bubble. Drag the right snack to the mouth.
+// 7. feed: any snack, straight into the mouth. Munch.
 reg({id:'feed',tier:'play',
-  init(){this.k=(Math.random()*3)|0;this.R=Math.min(W*.2,92);this.n=0;this.need=4;this.eatT=0;this.noT=0;this.d=null;this.touched=false;this.done=false;this.p=0;this.fx=Parts();this.round()},
-  round(){this.want=(Math.random()*4)|0;const o=shuffle([0,1,2,3].filter(x=>x!==this.want)).slice(0,2);this.fd=shuffle([this.want,...o]).map((k,i)=>({k,hx:W*(.2+.3*i),hy:H*.8,x:W*(.2+.3*i),y:H*.8}))},
+  init(){this.k=(Math.random()*3)|0;this.R=Math.min(W*.2,92);this.n=0;this.need=5;this.eatT=0;this.d=null;this.touched=false;this.done=false;this.p=0;this.fx=Parts();this.round()},
+  round(){this.fd=[0,1,2].map(i=>({k:(Math.random()*4)|0,hx:W*(.2+.3*i),hy:H*.8,x:W*(.2+.3*i),y:H*.8+60,s:0}))},
   mouth(){return[W/2,H*.34+this.R*.3]},
-  down(){this.touched=true;if(this.eatT&&performance.now()-this.eatT<500)return;const f=this.fd.find(f=>Math.hypot(M.x-f.x,M.y-f.y)<50);if(f){this.d=f;squeak(f.k)}},
+  down(){this.touched=true;if(performance.now()-this.eatT<350)return;const f=this.fd.find(f=>Math.hypot(M.x-f.x,M.y-f.y)<50);if(f){this.d=f;squeak(f.k)}},
   up(){const f=this.d;if(!f)return;this.d=null;const[mx,my]=this.mouth();
-    if(Math.hypot(f.x-mx,f.y-my)<this.R*.7){if(f.k===this.want){this.n++;this.p=this.n/this.need;this.eatT=performance.now();blip(520,.12);blip(780,.12,'triangle',.09,.1);buzz([10,20,10]);this.fx.burst(mx,my,14,['#ff9ec2','#fff','#ffd54f'],5);
-        if(this.n>=this.need)setTimeout(()=>{this.done=true},700);else setTimeout(()=>this.round(),500);this.fd=[]}
-      else{this.noT=performance.now();blip(220,.2,'sine',.07);buzz([30,20])}}},
-  draw(t){const f=this.field,now=performance.now(),R=this.R,cx=W/2,cy=H*.34,[mx,my]=this.mouth();
-    let near=0;if(this.d)near=clamp01(1-(Math.hypot(this.d.x-mx,this.d.y-my)-R*.7)/200);
-    const eating=now-this.eatT<500,no=now-this.noT<600;
-    chara(this.k,cx+(no?Math.sin(now/40)*8:0),cy,R,{mood:no?'cry':eating||near>.4?'open':'happy',sx:eating?1+Math.sin(now/60)*.04:1,sy:eating?1-Math.sin(now/60)*.04:1,lx:this.d?this.d.x:M.x,ly:this.d?this.d.y:M.y,acc:this.k===2?4:0});
-    // the order, in a bubble
-    const bx=cx+R*1.5,by=cy-R*.9,br=R*.4;ctx.fillStyle='#fff';ctx.strokeStyle=OUT;ctx.lineWidth=3;ctx.beginPath();ctx.arc(bx,by,br,0,6.28);ctx.fill();ctx.stroke();for(const[q,s]of[[.55,.12],[.8,.07]]){ctx.beginPath();ctx.arc(bx-br*q*1.3,by+br*q*1.1,br*s*2,0,6.28);ctx.fill();ctx.stroke()}
-    food(this.want,bx,by,br*.62);
-    for(const q of this.fd){if(q===this.d){q.x+=(M.x-q.x)*.6;q.y+=(M.y-q.y)*.6}else{q.x+=(q.hx-q.x)*.3;q.y+=(q.hy-q.y)*.3}food(q.k,q.x,q.y-(q===this.d?10:0),Math.min(W*.07,30))}
-    if(!this.touched&&this.fd[0]){const q=this.fd.find(z=>z.k===this.want)||this.fd[0];hint(q.hx,q.hy,t,50)}
+    if(Math.hypot(f.x-mx,f.y-my)<this.R*.8){this.fd.splice(this.fd.indexOf(f),1);this.n++;this.p=this.n/this.need;this.eatT=performance.now();crunch();blip(520,.1);buzz([10,20,10]);this.fx.burst(mx,my,12,['#ff9ec2','#fff','#ffd54f'],5);
+      if(this.n>=this.need)setTimeout(()=>{this.done=true},700);else if(!this.fd.length)setTimeout(()=>this.round(),400)}},
+  draw(t){const now=performance.now(),R=this.R,cx=W/2,cy=H*.34,[mx,my]=this.mouth();
+    let near=0;if(this.d)near=clamp01(1-(Math.hypot(this.d.x-mx,this.d.y-my)-R*.8)/200);
+    const eating=now-this.eatT<400;
+    chara(this.k,cx,cy,R,{mood:eating?'squint':near>.3?'open':'happy',sx:eating?1+Math.sin(now/50)*.05:1+near*.04,sy:eating?1-Math.sin(now/50)*.05:1,lx:this.d?this.d.x:M.x,ly:this.d?this.d.y:M.y,acc:this.k===2?4:0,arms:near>.3?1:0});
+    for(const q of this.fd){q.s+=(1-q.s)*.2;if(q===this.d){q.x+=(M.x-q.x)*.6;q.y+=(M.y-q.y)*.6}else{q.x+=(q.hx-q.x)*.25;q.y+=(q.hy-q.y)*.25}food(q.k,q.x,q.y-(q===this.d?10:0),Math.min(W*.07,30)*q.s)}
+    if(!this.touched&&this.fd[0])hint(this.fd[0].hx,this.fd[0].hy,t,50);
     this.fx.draw(.1)}});
-
-// 8. huddle: they run from your tap, but hold a finger down and everyone comes to snuggle.
-reg({id:'huddle',tier:'play',
-  init(){this.r=Math.min(W*.065,26);this.b=Array.from({length:12},(_,i)=>({x:rnd(40,W-40),y:rnd(120,H-60),vx:0,vy:0,k:i%3,an:rnd(0,6.28),ph:rnd(0,6.28)}));this.t0=0;this.touched=false;this.done=false;this.p=0;this.fx=Parts()},
-  down(){this.touched=true},
-  draw(t){const r=this.r;let near=0;
-    for(const b of this.b){const dx=M.x-b.x,dy=M.y-b.y,d=Math.hypot(dx,dy)||1;let ax=0,ay=0;
-      if(M.down){const s=d>r*2.2?.5:0;ax=dx/d*s;ay=dy/d*s}else if(M.active&&d<170){ax=-dx/d*.9;ay=-dy/d*.9}
-      else{b.an+=rnd(-.15,.15);ax=Math.cos(b.an)*.06;ay=Math.sin(b.an)*.06}
-      b.vx=(b.vx+ax)*.9;b.vy=(b.vy+ay)*.9;const sp=Math.hypot(b.vx,b.vy);if(sp>4){b.vx*=4/sp;b.vy*=4/sp}b.x+=b.vx;b.y+=b.vy;
-      if(b.x<r||b.x>W-r){b.x=Math.max(r,Math.min(W-r,b.x));b.vx*=-1;b.an=Math.PI-b.an}if(b.y<r+50||b.y>H-r){b.y=Math.max(r+50,Math.min(H-r,b.y));b.vy*=-1;b.an=-b.an}
-      if(M.down&&d<r*5)near++}
-    for(let i=0;i<this.b.length;i++)for(let j=i+1;j<this.b.length;j++){const a=this.b[i],c=this.b[j],dx=c.x-a.x,dy=c.y-a.y,d=Math.hypot(dx,dy)||1;if(d<r*1.5){const p=(r*1.5-d)/2,nx=dx/d,ny=dy/d;a.x-=nx*p;a.y-=ny*p;c.x+=nx*p;c.y+=ny*p}}
-    [...this.b].sort((a,b)=>a.y-b.y).forEach(b=>{const sp=Math.hypot(b.vx,b.vy);chara(b.k,b.x,b.y,r,{step:t/90+b.ph,mood:M.down&&sp<1.2?'blink':sp>2.2?'cry':'happy',lx:M.x,ly:M.y,hop:sp>.3?Math.abs(Math.sin(t/90+b.ph))*4:0,acc:b.k===0?1:0})});
-    const q=near/this.b.length;this.p+=(q-this.p)*.15;
-    if(q>=.9&&!this.done){this.t0=this.t0||performance.now();if(performance.now()-this.t0>450){this.done=true;this.fx.burst(M.x,M.y,30,['#ff9ec2','#fff','#ffd54f'],6)}}else if(q<.9)this.t0=0;
-    if(!this.touched)hint(W/2,H/2,t,80);this.fx.draw(.1)}});
 
 // finale: hold to puff the cheeks. Let go inside the ring and it goes "achoo!" (the sneeze, made friendly)
 reg({id:'inflate',tier:'play',lo:.78,hi:.92,over:.97,
